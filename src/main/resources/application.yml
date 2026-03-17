@@ -1,0 +1,83 @@
+server:
+  port: 9090
+  host: 0.0.0.0
+
+netty:
+  port: 8083
+  boss-threads: 1
+  worker-threads: 4
+  max-connections: 1000
+  read-timeout: 300  # seconds
+  write-timeout: 60  # seconds
+  heartbeat-interval: 30  # seconds
+
+database:
+  driver: com.mysql.cj.jdbc.Driver
+  url: jdbc:mysql://localhost:3306/gobang?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&allowPublicKeyRetrieval=true
+  username: root
+  password: "password"
+  pool-size: 10
+  connection-timeout: 30000
+  idle-timeout: 600000
+  max-lifetime: 1800000
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  database: 0
+  timeout: 5000
+  pool:
+    max-active: 50
+    max-idle: 20
+    min-idle: 5
+    max-wait: 3000
+
+jwt:
+  # JWT密钥（仅用于开发环境，生产环境必须使用 JWT_SECRET 环境变量）
+  # 启动前设置环境变量: export JWT_SECRET="your-256-bit-secret-key"
+  secret: development-only-change-in-production-at-least-256-bits
+  expiration: 604800  # 7 days in seconds
+  issuer: gobang-server
+
+game:
+  board-size: 15
+  win-count: 5
+  match-timeout: 300  # 5 minutes
+  room-expire-time: 600  # 10 minutes
+  reconnect-window: 600  # 10 minutes
+
+# WebSocket 配置
+websocket:
+  path: /ws                    # WebSocket 路径
+  max-frame-size: 65536        # 最大帧大小（64KB）
+  max-connections: 10000       # 最大连接数
+  enable-compression: true     # 启用压缩
+  ping-interval: 30            # 心跳间隔（秒）
+
+match:
+  # 基础配置
+  rating-diff: 200        # 初始积分差异范围（扩大以更快匹配）
+  check-interval: 50      # 匹配检查间隔（毫秒，更频繁检查）
+  max-queue-time: 300     # 最大等待时间（秒）
+
+  # 测试模式（开启后单人可以与机器人匹配）
+  test-mode: false        # 关闭测试模式：只匹配真实玩家
+  test-match-delay: 1000  # 测试模式下1秒后与机器人匹配
+
+  # 时间膨胀算法
+  enable-time-expansion: true   # 启用时间膨胀
+  expansion-rate: 20            # 每秒扩大20分积分范围
+  max-expansion-rating: 500     # 最大扩大到500分
+
+  # 分段匹配（高性能）
+  enable-segmented-match: true  # 启用分段匹配
+  segment-size: 200             # 每段200分积分范围
+
+logging:
+  level: INFO
+  pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    path: ./logs
+    max-size: 100MB
+    max-history: 30

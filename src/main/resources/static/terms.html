@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户协议 - 五子棋对战平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 50%, #ffd4c4 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.15);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #ff6b35;
+        }
+        .header h1 {
+            color: #ff6b35;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .update-date {
+            color: #999;
+            font-size: 14px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h2::before {
+            content: '📌';
+            font-size: 18px;
+        }
+        .section p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+        .section ul {
+            margin-left: 20px;
+            color: #666;
+            line-height: 1.8;
+        }
+        .section li {
+            margin-bottom: 8px;
+        }
+        .warning-box {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .warning-box strong {
+            color: #856404;
+        }
+        .highlight-box {
+            background: #fff8f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #ff6b35;
+        }
+        .highlight-box strong {
+            color: #ff6b35;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: transform 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 24px 20px;
+                border-radius: 12px;
+            }
+
+            .header {
+                margin-bottom: 24px;
+                padding-bottom: 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .section {
+                margin-bottom: 20px;
+            }
+
+            .section h2 {
+                font-size: 18px;
+            }
+
+            .section p,
+            .section ul {
+                font-size: 14px;
+            }
+
+            .highlight-box,
+            .warning-box {
+                padding: 15px;
+                font-size: 14px;
+            }
+
+            .back-btn {
+                padding: 10px 24px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            .container {
+                padding: 20px 16px;
+                border-radius: 10px;
+            }
+
+            .header {
+                margin-bottom: 20px;
+                padding-bottom: 12px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .update-date {
+                font-size: 12px;
+            }
+
+            .section {
+                margin-bottom: 16px;
+            }
+
+            .section h2 {
+                font-size: 16px;
+            }
+
+            .section p,
+            .section ul {
+                font-size: 13px;
+            }
+
+            .section ul {
+                margin-left: 15px;
+            }
+
+            .highlight-box,
+            .warning-box {
+                padding: 12px;
+                font-size: 13px;
+            }
+
+            .back-btn {
+                padding: 8px 20px;
+                font-size: 13px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📜 用户服务协议</h1>
+            <p class="update-date">最后更新：2024年3月15日</p>
+        </div>
+
+        <div class="highlight-box">
+            <p><strong>欢迎使用五子棋对战平台！</strong>请仔细阅读本协议的全部条款。注册、登录或使用本平台服务即表示您已阅读、理解并同意接受本协议的约束。</p>
+        </div>
+
+        <div class="section">
+            <h2>一、协议的接受与修改</h2>
+            <p>1.1 本协议是您与五子棋对战平台运营方之间就使用平台服务所订立的协议。</p>
+            <p>1.2 平台有权根据需要修改本协议，修改后的协议将在平台公布。如您不同意修改后的协议，可以停止使用平台服务。继续使用即表示接受修改后的协议。</p>
+        </div>
+
+        <div class="section">
+            <h2>二、账号注册与使用</h2>
+            <p>2.1 <strong>注册资格：</strong>您必须年满13周岁才能注册账号。未满18周岁的未成年人应在监护人监护下使用。</p>
+            <p>2.2 <strong>账号信息：</strong>您应提供真实、准确的个人信息，并及时更新信息。</p>
+            <p>2.3 <strong>账号安全：</strong>您对账号和密码的安全负全部责任。</p>
+            <p>2.4 <strong>账号使用：</strong>账号仅供本人使用，不得出借、转让或继承。</p>
+        </div>
+
+        <div class="section">
+            <h2>三、用户行为规范</h2>
+            <p>使用平台服务时，您承诺遵守以下规范：</p>
+            <ul>
+                <li>遵守法律法规和社会公序良俗</li>
+                <li>不得利用平台从事违法活动</li>
+                <li>不得发布违法、有害、虚假、侮辱性信息</li>
+                <li>不得干扰平台的正常运行</li>
+                <li>不得利用程序漏洞或外挂工具</li>
+                <li>不得恶意刷分或破坏游戏平衡</li>
+                <li>不得侮辱、诽谤或其他方式侵害他人权益</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>四、禁止行为</h2>
+            <div class="warning-box">
+                <p><strong>严格禁止以下行为，违者将被永久封禁：</strong></p>
+                <ul style="margin-top: 10px; margin-bottom: 0;">
+                    <li>使用外挂、脚本等作弊工具</li>
+                    <li>利用漏洞获取不当利益</li>
+                    <li>买卖账号或积分</li>
+                    <li>恶意举报或诬告他人</li>
+                    <li>传播病毒或恶意代码</li>
+                    <li>盗用他人账号</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>五、知识产权</h2>
+            <p>5.1 平台的软件、内容、商标等知识产权归平台或权利人所有。</p>
+            <p>5.2 您在使用过程中产生的内容（如对局记录），平台有权在服务范围内使用。</p>
+            <p>5.3 未经授权，不得复制、修改、传播平台内容。</p>
+        </div>
+
+        <div class="section">
+            <h2>六、免责声明</h2>
+            <p>6.1 平台按"现状"提供服务，不保证服务无中断或无错误。</p>
+            <p>6.2 因不可抗力、网络故障等原因导致服务中断，平台不承担责任。</p>
+            <p>6.3 用户因违规使用导致的损失，平台不承担责任。</p>
+            <p>6.4 平台不对第三方链接的内容负责。</p>
+        </div>
+
+        <div class="section">
+            <h2>七、服务变更与终止</h2>
+            <p>7.1 平台有权暂停或终止全部或部分服务。</p>
+            <p>7.2 如用户违反本协议，平台有权暂停或终止其账号。</p>
+            <p>7.3 账号终止后，相关数据可能被删除且无法恢复。</p>
+        </div>
+
+        <div class="section">
+            <h2>八、争议解决</h2>
+            <p>8.1 本协议的解释和争议解决适用中华人民共和国法律。</p>
+            <p>8.2 如发生争议，双方应友好协商；协商不成的，可向平台所在地人民法院起诉。</p>
+        </div>
+
+        <div class="section">
+            <h2>九、其他条款</h2>
+            <p>9.1 本协议构成您与平台之间关于使用服务的完整协议。</p>
+            <p>9.2 如本协议任何条款被认定为无效，不影响其他条款的效力。</p>
+            <p>9.3 平台未行使或延迟行使权利，不视为放弃该权利。</p>
+        </div>
+
+        <div class="section">
+            <h2>十、联系我们</h2>
+            <p>如对本协议有任何疑问，请通过以下方式联系我们：</p>
+            <ul>
+                <li>📧 邮箱：legal@gobang.com</li>
+                <li>📞 客服：400-123-4567</li>
+            </ul>
+        </div>
+
+        <button class="back-btn" onclick="window.location.href='index.html'">返回首页</button>
+    </div>
+</body>
+</html>

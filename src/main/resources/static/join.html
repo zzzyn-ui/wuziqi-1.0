@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加入房间 - 五子棋对战平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 50%, #ffd4c4 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .join-container {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 80px rgba(255, 107, 53, 0.2);
+            padding: 40px;
+            position: relative;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            color: #ff6b35;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateX(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #ff6b35;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 4px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #ff8c61;
+            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+        }
+
+        .form-group input::placeholder {
+            letter-spacing: normal;
+            font-weight: normal;
+            color: #ccc;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #eee;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #999;
+            font-size: 13px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .join-container {
+                border-radius: 16px;
+            }
+
+            .header {
+                padding: 16px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .room-content {
+                padding: 20px 16px;
+            }
+
+            .form-group input {
+                padding: 14px;
+                font-size: 16px;
+            }
+
+            .btn {
+                padding: 14px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 16px;
+            }
+
+            .info-box {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="join-container">
+        <button class="back-btn" onclick="goBack()" title="返回">←</button>
+        <div class="header">
+            <h1>加入房间</h1>
+            <p>输入房间号加入好友的游戏</p>
+        </div>
+
+        <div class="info-box">
+            <div class="info-item">
+                <span class="info-label">当前用户</span>
+                <span class="info-value" id="currentUser">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">用户ID</span>
+                <span class="info-value" id="userId">-</span>
+            </div>
+        </div>
+
+        <div id="statusBox" class="status info" style="display: none;"></div>
+
+        <div class="form-group">
+            <label for="roomInput">房间号（6位）</label>
+            <input
+                type="text"
+                id="roomInput"
+                placeholder="ABC123"
+                maxlength="6"
+                style="text-transform: uppercase;"
+            >
+        </div>
+
+        <button class="btn btn-primary" onclick="joinRoom()">加入房间</button>
+        <button class="btn btn-secondary" onclick="goBack()">返回首页</button>
+    </div>
+
+    <script>
+        let ws = null;
+        let sequenceId = 0;
+        let currentUser = null;
+
+        const MessageType = {
+            UNKNOWN: 0,
+            CREATE_ROOM: 15,
+            JOIN_ROOM: 16,
+            ROOM_JOINED: 17,
+            GAME_STATE: 22
+        };
+
+        // 初始化
+        function init() {
+            // 检查用户登录状态
+            const userStr = localStorage.getItem('currentUser');
+            if (!userStr) {
+                showStatus('请先登录', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
+
+            currentUser = JSON.parse(userStr);
+            document.getElementById('currentUser').textContent = currentUser.nickname || '玩家';
+            document.getElementById('userId').textContent = currentUser.user_id || '-';
+
+            // 从URL获取房间号
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('room');
+            if (roomId) {
+                document.getElementById('roomInput').value = roomId;
+            }
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.textContent = message;
+            statusBox.className = `status ${type}`;
+            statusBox.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusBox.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        function joinRoom() {
+            const roomId = document.getElementById('roomInput').value.trim().toUpperCase();
+
+            if (!roomId) {
+                showStatus('请输入房间号', 'error');
+                return;
+            }
+
+            if (roomId.length !== 6) {
+                showStatus('房间号必须是6位', 'error');
+                return;
+            }
+
+            showStatus('正在加入房间...', 'info');
+
+            // 连接WebSocket
+            connectWebSocket(roomId);
+        }
+
+        function connectWebSocket(roomId) {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname;
+            const wsPort = '8083';
+            const wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                // 发送加入房间消息
+                sendMessage(MessageType.JOIN_ROOM, {
+                    room_id: roomId
+                });
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    console.log('Received:', msg);
+                    handleMessage(msg);
+                } catch (e) {
+                    console.error('Message error:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                showStatus('连接失败，请重试', 'error');
+            };
+        }
+
+        function sendMessage(type, body = null) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                return false;
+            }
+
+            const packet = {
+                type: type,
+                sequence_id: ++sequenceId,  // 使用下划线命名匹配后端
+                timestamp: Date.now()
+            };
+
+            if (body) {
+                packet.body = body;
+            }
+
+            console.log('Sending message:', packet);
+            ws.send(JSON.stringify(packet));
+            return true;
+        }
+
+        function handleMessage(msg) {
+            console.log('Handling message type:', msg.type, 'MessageType.JOIN_ROOM:', MessageType.JOIN_ROOM);
+
+            switch (msg.type) {
+                case MessageType.JOIN_ROOM:
+                    console.log('JOIN_ROOM response:', msg);
+                    if (msg.body && msg.body.success) {
+                        showStatus('加入成功！游戏即将开始...', 'success');
+                        // 等待服务器发送游戏状态
+                    } else {
+                        showStatus(msg.body?.message || '加入房间失败', 'error');
+                    }
+                    break;
+                case MessageType.GAME_STATE:
+                    // 收到游戏状态，跳转到游戏页面
+                    console.log('Game state received:', msg);
+                    if (msg.room_id) {
+                        const myColor = msg.my_color || 2;
+                        window.location.href = `game.html?room=${msg.room_id}&my_color=${myColor}`;
+                    }
+                    break;
+                default:
+                    console.log('Unhandled message type:', msg.type, 'Message:', msg);
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // 回车键加入
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+
+        // 初始化
+        window.onload = init;
+
+        // 页面卸载时关闭连接
+        window.onbeforeunload = function() {
+            if (ws) {
+                ws.close();
+            }
+        };
+    </script>
+</body>
+</html>

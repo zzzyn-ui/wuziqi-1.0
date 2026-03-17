@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>匹配大厅 - 五子棋对战平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 50%, #ffd4c4 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 22px;
+            color: #ff6b35;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateX(-3px);
+            box-shadow: 0 6px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .match-container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 80px rgba(255, 107, 53, 0.2);
+            overflow: hidden;
+        }
+
+        .match-header {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8c61 50%, #ffa07a 100%);
+            padding: 24px;
+            text-align: center;
+            color: white;
+        }
+
+        .match-header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .match-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .match-content {
+            padding: 32px 24px;
+        }
+
+        .searching-animation {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .spinner {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 16px;
+            position: relative;
+        }
+
+        .spinner-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 4px solid transparent;
+            border-top-color: #ff6b35;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .spinner-ring:nth-child(2) {
+            border-top-color: #ff8c61;
+            animation-delay: 0.2s;
+            width: 70%;
+            height: 70%;
+            top: 15%;
+            left: 15%;
+        }
+
+        .spinner-ring:nth-child(3) {
+            border-top-color: #ffa07a;
+            animation-delay: 0.4s;
+            width: 40%;
+            height: 40%;
+            top: 30%;
+            left: 30%;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .searching-text {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .waiting-time {
+            font-size: 32px;
+            color: #ff6b35;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .online-count {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            background: #28a745;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .rating-range {
+            color: #ff6b35;
+        }
+
+        /* 匹配池样式 */
+        .match-pool-section {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .match-pool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .match-pool-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .match-pool-count {
+            font-size: 13px;
+            color: #ff6b35;
+            font-weight: 600;
+        }
+
+        .match-pool {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .pool-player {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .pool-player:last-child {
+            margin-bottom: 0;
+        }
+
+        .pool-player:hover {
+            background: #fff5e6;
+            transform: translateX(4px);
+        }
+
+        .pool-player.new {
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .pool-player.left {
+            animation: slideOut 0.3s ease;
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+        }
+
+        .pool-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .pool-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pool-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .pool-rating {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .pool-wait-time {
+            font-size: 12px;
+            color: #ff6b35;
+            white-space: nowrap;
+        }
+
+        .empty-pool {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .empty-pool-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .btn-cancel {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-cancel:hover {
+            background: #f5c6cb;
+        }
+
+        .btn-match {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+        }
+
+        .btn-match:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-match:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .tips {
+            background: #fff3cd;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .tips-title {
+            color: #856404;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .tips-text {
+            color: #856404;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top-color: #ff6b35;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+
+        /* 匹配成功动画 */
+        .match-success {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .match-success.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .vs-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6b35;
+            margin: 16px 0;
+        }
+
+        .opponent-info {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .player-avatar-large {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .player-details {
+            flex: 1;
+            text-align: left;
+        }
+
+        .player-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .player-rating {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .countdown {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ff6b35;
+            margin: 20px 0;
+        }
+
+        /* 数据更新动画 */
+        @keyframes dataUpdate {
+            0% { background-color: #fff3cd; }
+            100% { background-color: transparent; }
+        }
+
+        .data-updating {
+            animation: dataUpdate 0.5s ease;
+        }
+
+        /* ========== 响应式设计 ========== */
+
+        /* 平板 (768px - 1024px) */
+        @media (max-width: 1024px) {
+            .match-container {
+                max-width: 100%;
+            }
+
+            .match-content {
+                padding: 20px 16px;
+            }
+
+            .spinner {
+                width: 60px;
+                height: 60px;
+            }
+
+            .searching-text {
+                font-size: 16px;
+            }
+
+            .waiting-time {
+                font-size: 28px;
+            }
+
+            .info-card {
+                padding: 16px;
+            }
+
+            .pool-player {
+                padding: 8px;
+            }
+
+            .pool-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+            }
+        }
+
+        /* 手机 (小于 768px) */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                padding-top: 70px; /* 为返回按钮留出空间 */
+            }
+
+            .match-container {
+                border-radius: 16px;
+            }
+
+            .match-header {
+                padding: 16px;
+            }
+
+            .match-header h1 {
+                font-size: 18px;
+            }
+
+            .match-header p {
+                font-size: 12px;
+            }
+
+            .match-content {
+                padding: 16px 12px;
+            }
+
+            .searching-animation {
+                margin-bottom: 16px;
+            }
+
+            .spinner {
+                width: 50px;
+                height: 50px;
+            }
+
+            .searching-text {
+                font-size: 14px;
+            }
+
+            .waiting-time {
+                font-size: 24px;
+            }
+
+            .info-card {
+                padding: 12px;
+            }
+
+            .info-item {
+                padding: 8px 0;
+            }
+
+            .info-label {
+                font-size: 12px;
+            }
+
+            .info-value {
+                font-size: 14px;
+            }
+
+            /* 匹配池优化 */
+            .match-pool-section {
+                padding: 12px;
+            }
+
+            .match-pool-header {
+                margin-bottom: 8px;
+            }
+
+            .match-pool-title {
+                font-size: 12px;
+            }
+
+            .match-pool-count {
+                font-size: 11px;
+            }
+
+            .match-pool {
+                max-height: 150px;
+            }
+
+            .pool-player {
+                padding: 8px;
+                margin-bottom: 6px;
+            }
+
+            .pool-avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 11px;
+            }
+
+            .pool-name {
+                font-size: 12px;
+            }
+
+            .pool-rating {
+                font-size: 10px;
+            }
+
+            .pool-wait-time {
+                font-size: 10px;
+            }
+
+            .btn {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .tips {
+                padding: 12px;
+            }
+
+            .tips-title {
+                font-size: 12px;
+            }
+
+            .tips-text {
+                font-size: 11px;
+            }
+
+            /* 匹配成功页面 */
+            .success-icon {
+                font-size: 48px;
+            }
+
+            .vs-text {
+                font-size: 18px;
+            }
+
+            .player-avatar-large {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+
+            .player-name {
+                font-size: 14px;
+            }
+
+            .player-rating {
+                font-size: 12px;
+            }
+
+            .countdown {
+                font-size: 36px;
+            }
+        }
+
+        /* 小手机 (小于 480px) */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+                padding-top: 70px;
+            }
+
+            .match-header {
+                padding: 12px;
+            }
+
+            .match-header h1 {
+                font-size: 16px;
+            }
+
+            .waiting-time {
+                font-size: 20px;
+            }
+
+            .pool-player {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .pool-wait-time {
+                width: 100%;
+                text-align: right;
+            }
+
+            .info-item {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            .info-label,
+            .info-value {
+                font-size: 11px;
+            }
+
+            .empty-pool-icon {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="goBack()" title="返回">←</button>
+    <div class="match-container">
+        <div class="match-header">
+            <h1>匹配大厅</h1>
+            <p>正在为您寻找实力相当的对手</p>
+        </div>
+
+        <div class="match-content">
+            <!-- 等待匹配状态 -->
+            <div id="waitingState">
+                <div class="searching-animation">
+                    <div class="spinner">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <div class="searching-text">正在寻找对手...</div>
+                    <div class="waiting-time" id="waitingTime">0秒</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-item">
+                        <span class="info-label">当前在线</span>
+                        <span class="info-value online-count">
+                            <span class="online-dot" id="onlineDot"></span>
+                            <span id="onlineCount">-</span>
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">等待匹配</span>
+                        <span class="info-value" id="waitingCount">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">您的积分</span>
+                        <span class="info-value" id="userRating">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">匹配区间</span>
+                        <span class="info-value rating-range" id="ratingRange">-</span>
+                    </div>
+                </div>
+
+                <!-- 匹配池 -->
+                <div class="match-pool-section">
+                    <div class="match-pool-header">
+                        <span class="match-pool-title">👥 匹配池</span>
+                        <span class="match-pool-count" id="poolCount">等待中: 0人</span>
+                    </div>
+                    <div class="match-pool" id="matchPool">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <div>连接服务器中...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-match" id="startBtn" onclick="startMatch()">开始匹配</button>
+                <button class="btn btn-cancel" id="cancelBtn" onclick="cancelMatch()" style="display: none;">取消匹配</button>
+
+                <div class="tips">
+                    <div class="tips-title">💡 匹配提示</div>
+                    <div class="tips-text">
+                        • 匹配时间越长，积分区间越宽<br>
+                        • 30秒内没有匹配到对手将自动取消<br>
+                        • 匹配池显示正在等待的玩家<br>
+                        • 您可以随时取消匹配
+                    </div>
+                </div>
+            </div>
+
+            <!-- 匹配成功状态 -->
+            <div class="match-success" id="successState">
+                <div class="success-icon">🎉</div>
+                <h2>匹配成功！</h2>
+
+                <div class="vs-text">VS</div>
+
+                <div class="opponent-info">
+                    <div class="player-row">
+                        <div class="player-avatar-large" id="myAvatar">?</div>
+                        <div class="player-details">
+                            <div class="player-name" id="myName">我</div>
+                            <div class="player-rating">积分: <span id="myRatingDisplay">-</span></div>
+                        </div>
+                    </div>
+
+                    <div class="vs-text">⚔️</div>
+
+                    <div class="player-row">
+                        <div class="player-avatar-large" style="background: linear-gradient(135deg, #667eea, #764ba2);" id="opponentAvatar">?</div>
+                        <div class="player-details">
+                            <div class="player-name" id="opponentName">对手</div>
+                            <div class="player-rating">积分: <span id="opponentRating">-</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="countdown" id="countdown">3</div>
+
+                <button class="btn btn-match" onclick="enterGame()">立即开始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let sequenceId = 0;
+        let currentUser = null;
+        let isMatching = false;
+        let waitSeconds = 0;
+        let waitTimer = null;
+        let countdownTimer = null;
+        let matchData = null;
+        let matchPoolData = []; // 匹配池数据
+        let currentMode = 'ranked'; // 默认为竞技模式
+        let isAuthenticated = false; // WebSocket 认证状态
+
+        // 从 URL 获取模式参数
+        function getMatchMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            return (mode === 'casual' || mode === 'ranked') ? mode : 'ranked';
+        }
+
+        // 消息类型
+        const MessageType = {
+            UNKNOWN: 0,
+            MATCH_START: 10,
+            MATCH_CANCEL: 11,
+            MATCH_SUCCESS: 12,
+            MATCH_FAILED: 13,
+            MATCH_POOL_UPDATE: 14,  // 新增：匹配池更新
+            ONLINE_COUNT_UPDATE: 15,  // 新增：在线人数更新
+            GAME_RESIGN: 24,  // 退出当前游戏
+            TOKEN_AUTH: 100  // WebSocket 认证响应
+        };
+
+        // 初始化
+        function init() {
+            console.log('=== match.html 初始化 ===');
+            console.log('当前URL:', window.location.href);
+            console.log('当前协议:', window.location.protocol);
+
+            // 检查访问方式
+            const isFileProtocol = window.location.protocol === 'file:';
+            if (isFileProtocol) {
+                console.warn('通过 file:// 协议访问，无法读取服务器登录信息');
+                document.getElementById('waitingState').innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 64px; margin-bottom: 20px;">⚠️</div>
+                        <h2 style="color: #ff6b35; margin-bottom: 16px;">请通过服务器访问</h2>
+                        <p style="color: #666; margin-bottom: 24px; font-size: 14px; line-height: 1.6;">
+                            你正在通过 <strong>file://</strong> 协议访问页面<br>
+                            这会导致无法读取登录信息和连接服务器
+                        </p>
+                        <div style="background: #fff3cd; padding: 16px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: #856404; text-align: left;">
+                            <strong>正确的访问方式：</strong><br>
+                            ❌ file:///D:/wuziqi/src/main/resources/static/index.html<br>
+                            ✅ <strong style="color: #28a745;">http://localhost:9090/index.html</strong>
+                        </div>
+                        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                            <button onclick="window.location.href='http://localhost:9090/index.html'" style="background: linear-gradient(135deg, #ff6b35, #ff8c61); color: white; border: none; padding: 14px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                                前往服务器页面
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // 获取匹配模式
+            currentMode = getMatchMode();
+            console.log('当前匹配模式:', currentMode);
+
+            // 根据模式更新页面标题和提示
+            updateModeDisplay();
+
+            // 获取用户信息
+            console.log('检查 localStorage...');
+            const userStr = localStorage.getItem('currentUser');
+            console.log('currentUser 字符串:', userStr);
+
+            if (!userStr) {
+                console.error('未找到用户信息，请先登录');
+                alert('请先登录后进行双人对战匹配');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            console.log('解析用户信息...');
+            try {
+                currentUser = JSON.parse(userStr);
+                console.log('用户信息解析成功:', currentUser);
+            } catch (e) {
+                console.error('解析用户信息失败:', e);
+                alert('用户信息格式错误，请重新登录');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // 调试：输出用户信息
+            console.log('=== 用户信息检查 ===');
+            console.log('完整currentUser:', JSON.stringify(currentUser, null, 2));
+            console.log('user_id值:', currentUser.user_id);
+            console.log('user_id类型:', typeof currentUser.user_id);
+
+            // 尝试多种方式获取用户ID
+            const userIdDirect = currentUser.user_id;
+            const userIdInt = parseInt(currentUser.user_id);
+            const userIdFloat = parseFloat(currentUser.user_id);
+            const userIdNumber = Number(currentUser.user_id);
+
+            console.log('原始user_id:', userIdDirect);
+            console.log('parseInt:', userIdInt);
+            console.log('parseFloat:', userIdFloat);
+            console.log('Number():', userIdNumber);
+
+            // 检测是否为负数
+            const isGuest = userIdInt < 0 || userIdFloat < 0 || userIdNumber < 0;
+            console.log('是否为游客:', isGuest);
+
+            // 检测游客用户 - 只有竞技模式需要正式账号，休闲模式游客可用
+            if (isGuest || isNaN(userIdInt)) {
+                if (currentMode === 'ranked') {
+                    // 竞技模式需要正式账号
+                    console.warn('竞技模式需要正式账号');
+                    document.getElementById('waitingState').innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px;">
+                            <div style="font-size: 64px; margin-bottom: 20px;">🔒</div>
+                            <h2 style="color: #333; margin-bottom: 16px;">竞技模式需要正式账号</h2>
+                            <p style="color: #666; margin-bottom: 24px; font-size: 14px; line-height: 1.6;">
+                                竞技模式（积分对战）仅对正式注册用户开放<br>
+                                游客可以体验休闲模式（不计积分）
+                            </p>
+                            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                                <button onclick="goToCasualMode()" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 14px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                                    去休闲模式
+                                </button>
+                                <button onclick="window.location.href='login.html'" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; border: none; padding: 14px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                                    去注册登录
+                                </button>
+                            </div>
+                            <button onclick="window.location.href='index.html'" style="background: #f8f9fa; color: #666; border: 2px solid #e9ecef; padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px;">
+                                返回首页
+                            </button>
+                        </div>
+                    `;
+                    return;
+                } else {
+                    // 休闲模式，游客可用
+                    console.log('游客使用休闲模式');
+                }
+            }
+
+            // 更新用户信息显示
+            document.getElementById('myName').textContent = currentUser.nickname || '玩家';
+            document.getElementById('myAvatar').textContent = (currentUser.nickname || '?').charAt(0).toUpperCase();
+
+            // 只在竞技模式下更新积分信息
+            if (currentMode === 'ranked') {
+                document.getElementById('userRating').textContent = currentUser.rating || 1200;
+                document.getElementById('myRatingDisplay').textContent = currentUser.rating || 1200;
+                updateRatingRange();
+            }
+
+            // 连接WebSocket
+            connect();
+        }
+
+        // 根据模式更新页面显示
+        function updateModeDisplay() {
+            const headerTitle = document.querySelector('.match-header h1');
+            const headerDesc = document.querySelector('.match-header p');
+
+            if (currentMode === 'casual') {
+                // 休闲模式
+                if (headerTitle) headerTitle.textContent = '休闲匹配';
+                if (headerDesc) headerDesc.textContent = '轻松对战，不计积分';
+
+                // 隐藏积分相关元素
+                const ratingItems = document.querySelectorAll('[id*="Rating"], [id*="rating"]');
+                ratingItems.forEach(el => {
+                    el.style.display = 'none';
+                });
+
+                // 更新提示信息
+                const tipsText = document.querySelector('.tips-text');
+                if (tipsText) {
+                    tipsText.innerHTML = '• 休闲模式不计积分<br>• 游客也可以参与<br>• 匹配时间越长，区间越宽<br>• 30秒内没有匹配到对手将自动取消';
+                }
+            } else {
+                // 竞技模式
+                if (headerTitle) headerTitle.textContent = '竞技匹配';
+                if (headerDesc) headerDesc.textContent = '积分对战，挑战排名';
+            }
+        }
+
+        function updateRatingRange() {
+            const rating = currentUser.rating || 1200;
+            const range = 100 + Math.floor(waitSeconds / 5) * 50; // 随时间变宽
+            document.getElementById('ratingRange').textContent = `${rating - range}-${rating + range}`;
+        }
+
+        function connect() {
+            console.log('=== Connecting to WebSocket ===');
+            console.log('Auth token exists:', !!localStorage.getItem('authToken'));
+            updateOnlineStatus('connecting');
+
+            // 重置认证状态并禁用开始匹配按钮
+            isAuthenticated = false;
+            const startBtn = document.getElementById('startBtn');
+            if (startBtn) {
+                startBtn.disabled = true;
+                startBtn.textContent = '认证中...';
+                startBtn.style.opacity = '0.6';
+            }
+
+            // WebSocket URL不包含token参数
+            // Token将在连接后通过认证消息发送
+            const authToken = localStorage.getItem('authToken');
+            // 动态获取WebSocket地址 - WebSocket 在 9090 端口
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname;
+            const wsPort = '8083'; // WebSocket 端口
+            let wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+
+            console.log('WebSocket URL:', wsUrl);
+            console.log('Will send token after connection:', !!authToken);
+
+            try {
+                ws = new WebSocket(wsUrl);
+                console.log('WebSocket object created, readyState:', ws.readyState);
+            } catch (e) {
+                console.error('Failed to create WebSocket:', e);
+                updateOnlineStatus('error');
+                return;
+            }
+
+            ws.onopen = () => {
+                console.log('✓ WebSocket connected successfully');
+                updateOnlineStatus('connected');
+
+                // 检查是否有 token
+                if (!authToken) {
+                    console.error('No auth token found in localStorage');
+                    alert('未找到登录凭证，请先登录');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                console.log('Sending authentication token...');
+                ws.send(JSON.stringify({
+                    type: 100,  // TOKEN_AUTH 消息类型
+                    sequenceId: Date.now(),
+                    timestamp: Date.now(),
+                    body: { token: authToken }
+                }));
+
+                // 设置认证超时（5秒）
+                setTimeout(() => {
+                    if (!isAuthenticated) {
+                        console.error('Authentication timeout');
+                        alert('认证超时，请重新登录');
+                        window.location.href = 'login.html';
+                    }
+                }, 5000);
+
+                // 请求匹配池数据
+                requestMatchPoolData();
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    console.log('Received:', msg);
+                    handleMessage(msg);
+                } catch (e) {
+                    console.error('Message error:', e);
+                }
+            };
+
+            ws.onclose = (event) => {
+                console.log('✗ WebSocket disconnected, code:', event.code, 'reason:', event.reason);
+                if (!matchData && isMatching) {
+                    updateOnlineStatus('disconnected');
+                    // 3秒后尝试重连
+                    setTimeout(() => {
+                        if (!matchData && isMatching) {
+                            console.log('Attempting to reconnect...');
+                            connect();
+                        }
+                    }, 3000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('✗ WebSocket error:', error);
+                console.error('WebSocket readyState:', ws?.readyState);
+                updateOnlineStatus('error');
+            };
+        }
+
+        function sendMessage(type, body = null) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('WebSocket not ready, state:', ws?.readyState);
+                return false;
+            }
+
+            const packet = {
+                type: type,
+                sequenceId: ++sequenceId,
+                timestamp: Date.now()
+            };
+
+            if (body) {
+                packet.body = body;
+            }
+
+            const jsonStr = JSON.stringify(packet);
+            console.log('=== sendMessage 调试信息 ===');
+            console.log('消息类型:', type);
+            console.log('packet.body:', packet.body);
+            console.log('packet.body.mode:', packet.body?.mode);
+            console.log('完整 JSON:', jsonStr);
+
+            ws.send(jsonStr);
+            console.log('✓ 消息已发送');
+            return true;
+        }
+
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case MessageType.MATCH_START:
+                    // 匹配开始确认响应
+                    console.log('匹配请求已确认，正在等待对手...');
+                    break;
+                case MessageType.MATCH_SUCCESS:
+                    handleMatchSuccess(msg);
+                    break;
+                case MessageType.MATCH_FAILED:
+                    handleMatchFailed(msg);
+                    break;
+                case MessageType.MATCH_POOL_UPDATE:
+                    handleMatchPoolUpdate(msg);
+                    break;
+                case MessageType.ONLINE_COUNT_UPDATE:
+                    handleOnlineCountUpdate(msg);
+                    break;
+                case MessageType.TOKEN_AUTH:
+                    handleTokenAuthResponse(msg);
+                    break;
+                default:
+                    console.log('Unhandled message type:', msg.type);
+            }
+        }
+
+        // 处理 Token 认证响应
+        function handleTokenAuthResponse(msg) {
+            console.log('Token auth response:', msg);
+
+            if (msg.body && msg.body.success) {
+                isAuthenticated = true;
+                console.log('✓ WebSocket 认证成功！用户ID:', msg.body.userId);
+
+                // 检查并清理残留的游戏状态
+                const oldMatch = sessionStorage.getItem('currentMatch');
+                if (oldMatch) {
+                    console.log('发现残留的游戏状态，向服务器发送退出请求');
+                    try {
+                        const matchData = JSON.parse(oldMatch);
+                        // 向服务器发送认输消息以退出当前游戏
+                        sendMessage(MessageType.GAME_RESIGN, {
+                            room_id: matchData.room_id
+                        });
+                        // 清除本地状态
+                        sessionStorage.removeItem('currentMatch');
+                        console.log('已清理残留的游戏状态');
+                    } catch (e) {
+                        console.error('清理残留状态失败:', e);
+                        sessionStorage.removeItem('currentMatch');
+                    }
+                }
+
+                // 启用"开始匹配"按钮
+                const startBtn = document.getElementById('startBtn');
+                if (startBtn) {
+                    startBtn.disabled = false;
+                    startBtn.textContent = '开始匹配';
+                    startBtn.style.opacity = '1';
+                }
+            } else {
+                isAuthenticated = false;
+                console.error('✗ WebSocket 认证失败:', msg.body?.message || '未知错误');
+                alert('认证失败：' + (msg.body?.message || '请重新登录'));
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 请求匹配池数据
+        function requestMatchPoolData() {
+            // 发送请求获取当前匹配池状态
+            // 如果服务器不支持，使用模拟数据
+            console.log('Requesting match pool data...');
+        }
+
+        // 处理匹配池更新
+        function handleMatchPoolUpdate(msg) {
+            console.log('Match pool update:', msg);
+
+            const players = msg.body?.players || [];
+            updateMatchPoolDisplay(players);
+        }
+
+        // 处理在线人数更新
+        function handleOnlineCountUpdate(msg) {
+            console.log('Online count update:', msg);
+
+            const onlineCount = msg.body?.count || 0;
+            const waitingCount = msg.body?.waiting || 0;
+
+            updateOnlineDisplay(onlineCount, waitingCount);
+        }
+
+        // 更新匹配池显示
+        function updateMatchPoolDisplay(players) {
+            const poolContainer = document.getElementById('matchPool');
+            const countElement = document.getElementById('poolCount');
+
+            if (!players || players.length === 0) {
+                poolContainer.innerHTML = `
+                    <div class="empty-pool">
+                        <div class="empty-pool-icon">🔍</div>
+                        <div>暂无等待中的玩家</div>
+                    </div>
+                `;
+                countElement.textContent = '等待中: 0人';
+                return;
+            }
+
+            countElement.textContent = `等待中: ${players.length}人`;
+
+            // 清空容器 - 使用安全的DOM方法
+            poolContainer.innerHTML = '';
+
+            // 渲染匹配池玩家列表 - 使用安全的DOM方法防止XSS
+            players.forEach((player) => {
+                const waitTime = player.wait_time || 0;
+                const waitMinutes = Math.floor(waitTime / 60);
+                const waitSeconds = waitTime % 60;
+                const waitTimeText = waitMinutes > 0
+                    ? `${waitMinutes}分${waitSeconds}秒`
+                    : `${waitSeconds}秒`;
+
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'pool-player';
+                playerDiv.dataset.playerId = player.user_id;
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'pool-avatar';
+                avatarDiv.textContent = player.nickname?.charAt(0) || '?';
+
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'pool-info';
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'pool-name';
+                nameDiv.textContent = player.nickname || '匿名';
+
+                const ratingDiv = document.createElement('div');
+                ratingDiv.className = 'pool-rating';
+                ratingDiv.textContent = `积分: ${player.rating || 1200}`;
+
+                infoDiv.appendChild(nameDiv);
+                infoDiv.appendChild(ratingDiv);
+
+                const waitTimeDiv = document.createElement('div');
+                waitTimeDiv.className = 'pool-wait-time';
+                waitTimeDiv.textContent = `等待 ${waitTimeText}`;
+
+                playerDiv.appendChild(avatarDiv);
+                playerDiv.appendChild(infoDiv);
+                playerDiv.appendChild(waitTimeDiv);
+
+                poolContainer.appendChild(playerDiv);
+            });
+        }
+
+        // 更新在线人数显示
+        function updateOnlineDisplay(onlineCount, waitingCount) {
+            const onlineElement = document.getElementById('onlineCount');
+            const waitingElement = document.getElementById('waitingCount');
+
+            if (onlineCount > 0) {
+                onlineElement.textContent = onlineCount;
+            }
+
+            if (waitingCount !== undefined) {
+                waitingElement.textContent = waitingCount + '人';
+            }
+
+            // 数据更新动画
+            onlineElement.parentElement.classList.add('data-updating');
+            setTimeout(() => {
+                onlineElement.parentElement.classList.remove('data-updating');
+            }, 500);
+        }
+
+        // 更新在线状态指示
+        function updateOnlineStatus(status) {
+            const dot = document.getElementById('onlineDot');
+            const count = document.getElementById('onlineCount');
+
+            switch (status) {
+                case 'connecting':
+                    dot.style.background = '#ffc107'; // 黄色
+                    count.textContent = '-';
+                    break;
+                case 'connected':
+                    dot.style.background = '#28a745'; // 绿色
+                    break;
+                case 'disconnected':
+                    dot.style.background = '#dc3545'; // 红色
+                    break;
+                case 'error':
+                    dot.style.background = '#dc3545'; // 红色
+                    break;
+            }
+        }
+
+        function startMatch() {
+            if (isMatching) return;
+
+            // 检查 WebSocket 认证状态
+            if (!isAuthenticated) {
+                console.error('WebSocket not authenticated yet');
+                alert('正在认证中，请稍候...');
+                return;
+            }
+
+            // 清理可能残留的游戏状态
+            const oldMatch = sessionStorage.getItem('currentMatch');
+            if (oldMatch) {
+                console.log('Clearing residual game state:', oldMatch);
+                sessionStorage.removeItem('currentMatch');
+            }
+
+            console.log('=== startMatch 调试信息 ===');
+            console.log('1. currentMode 值:', currentMode);
+            console.log('2. currentMode 类型:', typeof currentMode);
+            console.log('3. window.location.href:', window.location.href);
+            console.log('4. window.location.search:', window.location.search);
+            console.log('5. 重新从 URL 获取模式:', getMatchMode());
+
+            // 对于游客用户，需要发送完整的用户信息
+            const isGuest = currentUser.user_id < 0;
+            const requestBody = {
+                rating: currentUser.rating || 1200,
+                mode: currentMode  // 添加游戏模式
+            };
+
+            console.log('6. requestBody 内容:', JSON.stringify(requestBody, null, 2));
+            console.log('7. requestBody.mode 值:', requestBody.mode);
+            console.log('8. requestBody.mode 类型:', typeof requestBody.mode);
+
+            // 游客用户需要额外信息
+            if (isGuest) {
+                requestBody.username = currentUser.username;
+                requestBody.nickname = currentUser.nickname;
+            }
+
+            console.log('=== 准备发送匹配请求 ===');
+            const success = sendMessage(MessageType.MATCH_START, requestBody);
+
+            if (success) {
+                isMatching = true;
+                // 切换按钮显示
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('cancelBtn').style.display = 'block';
+                startWaitTimer();
+            } else {
+                alert('无法连接到服务器');
+            }
+        }
+
+        function cancelMatch() {
+            // 如果没有在匹配中，直接返回首页
+            if (!isMatching) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            console.log('Canceling match...');
+            sendMessage(MessageType.MATCH_CANCEL);
+
+            stopWaitTimer();
+            isMatching = false;
+
+            // 切换按钮显示
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('cancelBtn').style.display = 'none';
+
+            window.location.href = 'index.html';
+        }
+
+        function cancelMatch() {
+            if (!isMatching) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            console.log('Canceling match...');
+            sendMessage(MessageType.MATCH_CANCEL);
+
+            stopWaitTimer();
+            isMatching = false;
+            window.location.href = 'index.html';
+        }
+
+        function handleMatchSuccess(msg) {
+            console.log('Match success:', msg);
+            stopWaitTimer();
+            isMatching = false;
+            matchData = msg;
+
+            // 隐藏按钮
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('cancelBtn').style.display = 'none';
+
+            // 显示匹配成功界面
+            document.getElementById('waitingState').style.display = 'none';
+            document.getElementById('successState').classList.add('show');
+
+            // 更新对手信息
+            const opponent = msg.body?.opponent || msg.opponent || {};
+            document.getElementById('opponentName').textContent = opponent.nickname || '对手';
+            document.getElementById('opponentAvatar').textContent = (opponent.nickname || '?').charAt(0).toUpperCase();
+            document.getElementById('opponentRating').textContent = opponent.rating || '?';
+
+            // 开始倒计时
+            startCountdown();
+        }
+
+        function handleMatchFailed(msg) {
+            console.log('Match failed:', msg);
+            stopWaitTimer();
+            isMatching = false;
+
+            // 恢复按钮显示
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('cancelBtn').style.display = 'none';
+
+            const reason = msg.body?.reason || msg.reason || msg.message || '匹配失败';
+
+            // 显示失败原因并返回首页
+            alert(reason);
+            window.location.href = 'index.html';
+        }
+
+        function startWaitTimer() {
+            waitSeconds = 0;
+            updateWaitTime();
+            waitTimer = setInterval(() => {
+                waitSeconds++;
+                updateWaitTime();
+
+                // 更新匹配区间
+                updateRatingRange();
+
+                // 30秒后自动取消
+                if (waitSeconds >= 30) {
+                    stopWaitTimer();
+                    isMatching = false;
+
+                    // 恢复按钮显示
+                    document.getElementById('startBtn').style.display = 'block';
+                    document.getElementById('cancelBtn').style.display = 'none';
+
+                    // 提示并返回首页
+                    alert('匹配超时，当前没有合适的对手');
+                    window.location.href = 'index.html';
+                }
+            }, 1000);
+        }
+
+        function stopWaitTimer() {
+            if (waitTimer) {
+                clearInterval(waitTimer);
+                waitTimer = null;
+            }
+        }
+
+        function updateWaitTime() {
+            const mins = Math.floor(waitSeconds / 60);
+            const secs = waitSeconds % 60;
+            if (mins > 0) {
+                document.getElementById('waitingTime').textContent = `${mins}分${secs}秒`;
+            } else {
+                document.getElementById('waitingTime').textContent = `${secs}秒`;
+            }
+        }
+
+        function startCountdown() {
+            let count = 3;
+            document.getElementById('countdown').textContent = count;
+
+            countdownTimer = setInterval(() => {
+                count--;
+                document.getElementById('countdown').textContent = count;
+
+                if (count <= 0) {
+                    stopCountdown();
+                    enterGame();
+                }
+            }, 1000);
+        }
+
+        function stopCountdown() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+        }
+
+        function enterGame() {
+            stopCountdown();
+
+            // 保存匹配信息
+            sessionStorage.setItem('currentMatch', JSON.stringify(matchData));
+
+            // 获取房间ID（从body或直接从消息中获取）
+            const roomId = matchData.body?.room_id || matchData.room_id || '';
+            if (!roomId) {
+                console.error('Room ID not found in match data:', matchData);
+                alert('匹配成功但未获取到房间号，请重新匹配');
+                window.location.href = 'match.html?mode=' + (currentMode === 'casual' ? 'casual' : 'ranked');
+                return;
+            }
+
+            // 跳转到游戏页面，带上房间号
+            window.location.href = 'game.html?room=' + encodeURIComponent(roomId);
+        }
+
+        // 切换到休闲模式
+        function goToCasualMode() {
+            window.location.href = 'match.html?mode=casual';
+        }
+
+        // 返回首页
+        function goBack() {
+            // 如果正在匹配中，先取消匹配
+            if (isMatching) {
+                sendMessage(MessageType.MATCH_CANCEL);
+            }
+            window.location.href = 'index.html';
+        }
+
+        // 页面卸载时清理
+        window.onbeforeunload = function() {
+            if (isMatching) {
+                sendMessage(MessageType.MATCH_CANCEL);
+            }
+            stopWaitTimer();
+            stopCountdown();
+            if (ws) {
+                ws.close();
+            }
+        };
+
+        // 页面加载时初始化
+        window.onload = init;
+
+    </script>
+</body>
+</html>

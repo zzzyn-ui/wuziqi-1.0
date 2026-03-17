@@ -1,0 +1,34 @@
+# 环境变量文件（包含敏感信息）
+.env
+.env.local
+.env.production
+
+# 编译输出
+target/
+*.class
+*.jar
+*.war
+
+# 日志文件
+logs/
+*.log
+
+# IDE 相关
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.bak
+*.cache
+__pycache__/
+nul_backup.txt
+__pycache__/

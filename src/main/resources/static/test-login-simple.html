@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>登录测试</title>
+</head>
+<body>
+    <h1>登录功能测试</h1>
+    <div id="status">状态: 准备测试...</div>
+
+    <div>
+        <input type="text" id="username" placeholder="用户名" style="padding: 8px; margin: 5px;">
+        <input type="password" id="password" placeholder="密码" style="padding: 8px; margin: 5px;">
+        <button onclick="testLogin()" style="padding: 8px 16px;">登录</button>
+    </div>
+
+    <div id="result" style="margin-top: 20px; padding: 10px; background: #f0f0f0;"></div>
+
+    <script>
+        console.log('=== 页面加载完成 ===');
+        document.getElementById('status').textContent = '状态: 页面已加载';
+
+        function testLogin() {
+            console.log('=== 测试登录函数 ===');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            document.getElementById('result').innerHTML = '正在测试...';
+
+            // 测试WebSocket连接
+            const ws = new WebSocket('ws://localhost:8083/ws');
+
+            ws.onopen = () => {
+                console.log('✓ WebSocket连接成功');
+                document.getElementById('result').innerHTML = 'WebSocket已连接<br>发送登录请求...';
+
+                // 发送登录请求
+                const msg = {
+                    type: 1,
+                    body: { username: username, password: password }
+                };
+
+                ws.send(JSON.stringify(msg));
+                console.log('✓ 登录请求已发送');
+            };
+
+            ws.onmessage = (event) => {
+                console.log('✓ 收到响应:', event.data);
+                const data = JSON.parse(event.data);
+
+                if (data.type === 3) {
+                    const body = data.body || {};
+                    if (body.success) {
+                        document.getElementById('result').innerHTML =
+                            '<strong style="color: green;">登录成功!</strong><br>' +
+                            '用户: ' + JSON.stringify(body.user_info);
+                    } else {
+                        document.getElementById('result').innerHTML =
+                            '<strong style="color: red;">登录失败:</strong> ' + body.message;
+                    }
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket错误:', error);
+                document.getElementById('result').innerHTML =
+                    '<strong style="color: red;">WebSocket连接失败</strong>';
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket连接已关闭');
+            };
+
+            // 5秒后检查
+            setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    document.getElementById('result').innerHTML =
+                        '<strong style="color: red;">连接超时</strong>';
+                }
+            }, 5000);
+        }
+
+        // 页面加载完成后显示
+        window.onload = () => {
+            console.log('=== window.onload 触发 ===');
+            document.getElementById('status').textContent = '状态: 就绪';
+        };
+
+        console.log('=== 脚本执行完成 ===');
+    </script>
+</body>
+</html>

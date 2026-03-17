@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋对局 - 游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 50%, #ffd4c4 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 22px;
+            color: #ff6b35;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateX(-3px);
+            box-shadow: 0 6px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #ff6b35;
+            font-size: 24px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 24px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-dot.active {
+            background: #28a745;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .status-dot.inactive {
+            background: #ccc;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .board-wrapper {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 0;
+            background: #fff5e6;
+            padding: 15px;
+            border-radius: 8px;
+            position: relative;
+            border: 2px solid #ff8c61;
+        }
+
+        .board::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                linear-gradient(#ff8c61 1px, transparent 1px),
+                linear-gradient(90deg, #ff8c61 1px, transparent 1px);
+            background-size: 30px 30px;
+            background-position: 15px 15px;
+            pointer-events: none;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            position: relative;
+            cursor: pointer;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell:hover {
+            background: rgba(255, 107, 53, 0.15);
+        }
+
+        .piece {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            animation: place 0.15s ease;
+        }
+
+        @keyframes place {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        .piece.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .piece.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .piece.last-move::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #ff0000;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #f0f0f0;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                padding-top: 70px; /* 为返回按钮留出空间 */
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .header p {
+                font-size: 12px;
+            }
+
+            /* 棋盘保持固定大小，支持横向滚动 */
+            .board-wrapper {
+                overflow-x: auto;
+                max-width: 100%;
+            }
+
+            .board {
+                grid-template-columns: repeat(15, 30px);
+                grid-template-rows: repeat(15, 30px);
+                min-width: 480px;
+            }
+
+            .board::before {
+                background-size: 30px 30px;
+                background-position: 15px 15px;
+            }
+
+            .cell {
+                width: 30px;
+                height: 30px;
+            }
+
+            .piece {
+                width: 26px;
+                height: 26px;
+            }
+
+            .status-bar {
+                padding: 10px 16px;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 10px 18px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+                padding-top: 70px;
+            }
+
+            .header h1 {
+                font-size: 16px;
+            }
+
+            .status-bar {
+                font-size: 13px;
+            }
+
+            .status-dot {
+                width: 10px;
+                height: 10px;
+            }
+
+            .controls {
+                gap: 6px;
+            }
+
+            .btn {
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+
+            .modal-content {
+                padding: 24px;
+                margin: 10px;
+            }
+
+            .modal-icon {
+                font-size: 48px;
+            }
+
+            .modal-title {
+                font-size: 20px;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            animation: modalIn 0.3s ease;
+            max-width: 400px;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .modal-text {
+            color: #999;
+            margin-bottom: 24px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="goBack()" title="返回">←</button>
+    <div class="header">
+        <h1>五子棋对局</h1>
+        <p>房间: <span id="roomId">-</span> | <span id="gameStatus">准备中...</span></p>
+    </div>
+
+    <div class="game-container">
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot active" id="blackDot"></div>
+                <span>黑方</span>
+            </div>
+            <div class="status-item">
+                <span id="turnText">黑方落子中...</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot inactive" id="whiteDot"></div>
+                <span>白方</span>
+            </div>
+        </div>
+
+        <div class="board-wrapper">
+            <div class="board" id="board"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="requestUndo()" id="undoBtn" disabled>请求悔棋</button>
+            <button class="btn btn-secondary" onclick="resign()">认输</button>
+            <button class="btn btn-secondary" onclick="copyRoomId()">复制房间号</button>
+            <button class="btn btn-primary" onclick="goBack()">返回首页</button>
+        </div>
+    </div>
+
+    <div class="modal" id="winModal">
+        <div class="modal-content">
+            <div class="modal-icon" id="modalIcon">🎉</div>
+            <div class="modal-title" id="modalTitle">游戏结束</div>
+            <div class="modal-text" id="modalText">黑方获胜</div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="closeModal()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let board = new Array(225).fill(0);
+        let currentPlayer = 1; // 1=黑, 2=白
+        let gameEnded = false;
+        let myColor = 0;
+        let roomId = '';
+        let ws = null;
+        let isHotSeatMode = false; // 热座模式：两人同一设备轮流下棋
+
+        // 初始化
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            roomId = urlParams.get('room') || urlParams.get('roomId') || '';
+            const myColorParam = urlParams.get('my_color');
+
+            document.getElementById('roomId').textContent = roomId || '-';
+
+            // 检查是否为热座模式
+            if (mode === 'local') {
+                isHotSeatMode = true;
+                myColor = 1; // 在热座模式下，我们控制双方棋子
+                currentPlayer = 1; // 黑棋先手
+                document.getElementById('gameStatus').textContent = `本地对战 - 两人轮流在同一设备下棋`;
+                document.getElementById('undoBtn').style.display = 'none'; // 本地模式不需要悔棋按钮
+
+                initBoard();
+                updateTurnDisplay();
+                return; // 热座模式不需要WebSocket
+            }
+
+            // 在线房间对战：连接WebSocket
+            if (myColorParam) {
+                myColor = parseInt(myColorParam);
+            } else {
+                myColor = 0; // 未知颜色，等待服务器分配
+            }
+            document.getElementById('gameStatus').textContent = `在线对战 - ${myColor > 0 ? '你执' + (myColor === 1 ? '黑' : '白') + '棋' : '连接中...'}`;
+
+            // 如果没有roomId，提示用户
+            if (!roomId) {
+                document.getElementById('gameStatus').textContent = '错误：缺少房间号，请从首页进入';
+                alert('请从首页选择游戏模式进入对局');
+                initBoard();
+                return;
+            }
+
+            initBoard();
+            connectWebSocket();
+        }
+
+        function initBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            for (let i = 0; i < 225; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.onclick = () => handleClick(i);
+                boardEl.appendChild(cell);
+            }
+        }
+
+        function handleClick(index) {
+            if (gameEnded) return;
+            if (board[index] !== 0) return;
+
+            // 热座模式：直接落子，两人轮流在同一设备下棋
+            if (isHotSeatMode) {
+                const x = Math.floor(index / 15);
+                const y = index % 15;
+                makeMove(x, y, currentPlayer);
+                return;
+            }
+
+            // 在线模式：检查是否轮到自己
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('WebSocket未连接，请刷新页面重试');
+                return;
+            }
+
+            if (myColor === 0) {
+                alert('游戏尚未开始，请等待服务器分配颜色');
+                return;
+            }
+
+            if (currentPlayer !== myColor) {
+                alert('现在不是你的回合');
+                return;
+            }
+
+            // 发送WebSocket消息
+            const x = Math.floor(index / 15);
+            const y = index % 15;
+
+            console.log(`发送落子请求: x=${x}, y=${y}, color=${myColor}, roomId=${roomId}`);
+            ws.send(JSON.stringify({
+                type: 20,  // GAME_MOVE
+                sequenceId: Date.now(),
+                timestamp: Date.now(),
+                body: {
+                    x: x,
+                    y: y
+                }
+            }));
+            console.log('落子消息已发送');
+        }
+
+        function makeMove(x, y, player) {
+            const index = x * 15 + y;
+            if (board[index] !== 0) return;
+
+            board[index] = player;
+            renderPiece(index, player);
+
+            if (checkWin(x, y, player)) {
+                gameEnded = true;
+                showWinModal(player);
+                return;
+            }
+
+            currentPlayer = player === 1 ? 2 : 1;
+            updateTurnDisplay();
+        }
+
+        function renderPiece(index, player) {
+            document.querySelectorAll('.piece.last-move').forEach(p => {
+                p.classList.remove('last-move');
+            });
+
+            const cell = document.querySelector(`.cell:nth-child(${index + 1})`);
+            if (!cell) return;
+
+            const piece = document.createElement('div');
+            piece.className = `piece ${player === 1 ? 'black' : 'white'} last-move`;
+            cell.appendChild(piece);
+        }
+
+        function updateTurnDisplay() {
+            const blackDot = document.getElementById('blackDot');
+            const whiteDot = document.getElementById('whiteDot');
+            const turnText = document.getElementById('turnText');
+
+            if (currentPlayer === 1) {
+                blackDot.classList.add('active');
+                blackDot.classList.remove('inactive');
+                whiteDot.classList.add('inactive');
+                whiteDot.classList.remove('active');
+                if (isHotSeatMode) {
+                    turnText.textContent = '黑方落子';
+                } else {
+                    // 在线模式：显示个性化的回合信息
+                    if (myColor === 1) {
+                        turnText.textContent = '你的回合 (执黑)';
+                    } else if (myColor === 2) {
+                        turnText.textContent = '对方回合 (执黑)';
+                    } else {
+                        turnText.textContent = '黑方落子中...';
+                    }
+                }
+            } else {
+                whiteDot.classList.add('active');
+                whiteDot.classList.remove('inactive');
+                blackDot.classList.add('inactive');
+                blackDot.classList.remove('active');
+                if (isHotSeatMode) {
+                    turnText.textContent = '白方落子';
+                } else {
+                    // 在线模式：显示个性化的回合信息
+                    if (myColor === 2) {
+                        turnText.textContent = '你的回合 (执白)';
+                    } else if (myColor === 1) {
+                        turnText.textContent = '对方回合 (执白)';
+                    } else {
+                        turnText.textContent = '白方落子中...';
+                    }
+                }
+            }
+        }
+
+        function checkWin(x, y, player) {
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+
+            for (const [dx, dy] of directions) {
+                let count = 1;
+
+                for (let i = 1; i < 5; i++) {
+                    const nx = x + dx * i;
+                    const ny = y + dy * i;
+                    if (nx < 0 || nx >= 15 || ny < 0 || ny >= 15) break;
+                    if (board[nx * 15 + ny] !== player) break;
+                    count++;
+                }
+
+                for (let i = 1; i < 5; i++) {
+                    const nx = x - dx * i;
+                    const ny = y - dy * i;
+                    if (nx < 0 || nx >= 15 || ny < 0 || ny >= 15) break;
+                    if (board[nx * 15 + ny] !== player) break;
+                    count++;
+                }
+
+                if (count >= 5) return true;
+            }
+
+            return false;
+        }
+
+        function closeModal() {
+            document.getElementById('winModal').classList.remove('show');
+            goBack();
+        }
+
+        function requestUndo() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'undo',
+                    roomId: roomId
+                }));
+            }
+        }
+
+        function resign() {
+            if (gameEnded) {
+                alert('游戏已经结束');
+                return;
+            }
+
+            if (isHotSeatMode) {
+                // 本地模式：直接结束游戏
+                if (confirm('确定要认输吗？')) {
+                    gameEnded = true;
+                    showWinModal(currentPlayer === 1 ? 2 : 1);
+                }
+                return;
+            }
+
+            // 在线模式：检查连接状态
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('网络未连接，无法认输');
+                return;
+            }
+
+            if (myColor === 0) {
+                alert('游戏尚未开始');
+                return;
+            }
+
+            if (confirm('确定要认输吗？')) {
+                ws.send(JSON.stringify({
+                    type: 24,  // GAME_RESIGN
+                    sequence_id: Date.now(),
+                    timestamp: Date.now(),
+                    body: {
+                        room_id: roomId
+                    }
+                }));
+                console.log('已发送认输请求');
+            }
+        }
+
+        function copyRoomId() {
+            if (roomId) {
+                navigator.clipboard.writeText(roomId);
+                alert('房间号已复制: ' + roomId);
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        function connectWebSocket() {
+            // 动态获取WebSocket地址
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname;
+            const wsPort = '8083';
+            const wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+
+            console.log('Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket连接成功');
+
+                // 检查登录凭证
+                const authToken = localStorage.getItem('authToken') || localStorage.getItem('gobang_token');
+                if (!authToken) {
+                    console.error('No auth token found');
+                    alert('未找到登录凭证，请先登录');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // 发送认证消息
+                console.log('Sending authentication...');
+                ws.send(JSON.stringify({
+                    type: 100, // TOKEN_AUTH
+                    sequence_id: Date.now(),
+                    timestamp: Date.now(),
+                    body: { token: authToken }
+                }));
+
+                // 如果有roomId，发送游戏重连消息以获取游戏状态
+                if (roomId) {
+                    console.log('Sending game reconnect for room:', roomId);
+                    setTimeout(() => {
+                        ws.send(JSON.stringify({
+                            type: 25, // GAME_RECONNECT
+                            sequence_id: Date.now(),
+                            timestamp: Date.now(),
+                            body: {
+                                room_id: roomId
+                            }
+                        }));
+                    }, 500); // 延迟发送，确保认证已完成
+                }
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('Received message:', data);
+                    handleMessage(data);
+                } catch (e) {
+                    console.error('Message parse error:', e, event.data);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket连接关闭');
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket错误:', error);
+            };
+        }
+
+        function handleMessage(data) {
+            // 根据消息类型处理
+            const msgType = data.type || (data.body && data.body.type);
+
+            switch (msgType) {
+                case 100: // TOKEN_AUTH响应
+                    console.log('认证响应:', data);
+                    if (data.body && data.body.success) {
+                        console.log('认证成功，用户ID:', data.body.userId);
+                    } else {
+                        console.error('认证失败:', data.body?.message);
+                        alert('认证失败：' + (data.body?.message || '未知错误'));
+                    }
+                    break;
+                case 42: // CHAT_SYSTEM - 系统消息/错误消息
+                    console.log('系统消息:', data.body?.content || data.content);
+                    break;
+                case 'init':
+                    myColor = data.color;
+                    document.getElementById('gameStatus').textContent = `你执${myColor === 1 ? '黑' : '白'}棋`;
+                    break;
+                case 'move':
+                    makeMove(data.x, data.y, data.color);
+                    break;
+                case 22: // GAME_STATE (旧版兼容)
+                case 32: // GAME_STATE (新版)
+                    // 游戏状态更新
+                    console.log('收到游戏状态更新:', data);
+                    if (data.body) {
+                        // 从body中获取游戏数据
+                        const gameState = data.body;
+                        if (gameState.board) {
+                            if (gameState.my_color !== undefined) {
+                                myColor = gameState.my_color;
+                                document.getElementById('gameStatus').textContent = `你执${myColor === 1 ? '黑' : '白'}棋`;
+                            }
+                            updateBoardFromState(gameState);
+                        }
+                    } else if (data.board) {
+                        // 直接从data获取（兼容旧格式）
+                        if (data.my_color !== undefined) {
+                            myColor = data.my_color;
+                            document.getElementById('gameStatus').textContent = `你执${myColor === 1 ? '黑' : '白'}棋`;
+                        }
+                        updateBoardFromState(data);
+                    }
+                    break;
+                case 23: // GAME_OVER
+                    // 游戏结束
+                    const body = data.body || {};
+                    const winnerId = body.winner_id ? parseInt(body.winner_id) : null;
+                    const isWinner = body.is_winner === true;
+                    const isCasual = body.is_casual === true;
+                    const ratingChange = body.rating_change || 0;
+
+                    // 根据winnerId和isWinner显示结果
+                    showGameOverModal(winnerId, isWinner, isCasual, ratingChange);
+                    break;
+                case 'undo':
+                    // 处理悔棋
+                    break;
+                case 0: // UNKNOWN - 通常是错误消息
+                    console.error('⚠️ 收到错误消息:', data);
+                    console.error('错误详情:', data.body);
+                    if (data.body && data.body.message) {
+                        alert('服务器错误: ' + data.body.message);
+                    } else if (data.body && data.body.error) {
+                        alert('服务器错误: ' + data.body.error);
+                    } else {
+                        alert('服务器返回未知错误，请查看控制台');
+                    }
+                    break;
+                default:
+                    console.log('未处理的消息类型:', msgType, data);
+            }
+        }
+
+        function updateBoardFromState(state) {
+            const newBoard = state.board;
+
+            // 清空现有棋子
+            document.querySelectorAll('.piece').forEach(p => p.remove());
+
+            // 渲染新棋盘
+            for (let i = 0; i < 225; i++) {
+                if (newBoard[i] !== 0) {
+                    renderPiece(i, newBoard[i]);
+                }
+            }
+
+            // 更新棋盘数组
+            board = newBoard.slice(); // 创建副本
+
+            // 更新当前玩家
+            if (state.current_player !== undefined) {
+                currentPlayer = state.current_player;
+                updateTurnDisplay();
+            }
+
+            // 检查游戏是否结束
+            if (state.game_state === 'FINISHED') {
+                gameEnded = true;
+            }
+
+            console.log('Board updated from state, currentPlayer:', currentPlayer);
+        }
+
+        function closeModal() {
+            document.getElementById('winModal').classList.remove('show');
+        }
+
+        function showWinModal(winner) {
+            const modal = document.getElementById('winModal');
+            const icon = document.getElementById('modalIcon');
+            const title = document.getElementById('modalTitle');
+            const text = document.getElementById('modalText');
+
+            if (isHotSeatMode) {
+                // 热座模式
+                icon.textContent = winner === 1 ? '⚫' : '⚪';
+                title.textContent = winner === 1 ? '黑方获胜！' : '白方获胜！';
+                text.textContent = '本地对战结束，再来一局？';
+            } else {
+                // 在线对战模式
+                icon.textContent = winner === 1 ? '⚫' : '⚪';
+                title.textContent = winner === 1 ? '黑方获胜！' : '白方获胜！';
+                text.textContent = `恭喜${winner === 1 ? '黑方' : '白方'}赢得比赛！`;
+            }
+
+            modal.classList.add('show');
+        }
+
+        function showGameOverModal(winnerId, isWinner, isCasual, ratingChange) {
+            const modal = document.getElementById('winModal');
+            const icon = document.getElementById('modalIcon');
+            const title = document.getElementById('modalTitle');
+            const text = document.getElementById('modalText');
+
+            gameEnded = true;
+
+            if (winnerId === null) {
+                // 平局
+                icon.textContent = '🤝';
+                title.textContent = '平局！';
+                text.textContent = '双方势均力敌，不分胜负';
+            } else if (isWinner) {
+                // 我赢了
+                icon.textContent = '🎉';
+                title.textContent = '恭喜获胜！';
+                if (isCasual) {
+                    text.textContent = '休闲模式，不计积分';
+                } else {
+                    text.textContent = `积分 ${ratingChange >= 0 ? '+' : ''}${ratingChange}`;
+                }
+            } else {
+                // 我输了
+                icon.textContent = '😔';
+                title.textContent = '很遗憾，你输了';
+                if (isCasual) {
+                    text.textContent = '休闲模式，不计积分';
+                } else {
+                    text.textContent = `积分 ${ratingChange >= 0 ? '+' : ''}${ratingChange}`;
+                }
+            }
+
+            modal.classList.add('show');
+        }
+
+        init();
+    </script>
+</body>
+</html>

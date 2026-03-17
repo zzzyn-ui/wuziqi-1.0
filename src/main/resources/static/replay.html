@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋对局复盘</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 50%, #ffd4c4 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-radius: 12px;
+            padding: 16px 24px;
+            box-shadow: 0 2px 12px rgba(255, 149, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #ff9500, #ff8c00);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            box-shadow: 0 4px 16px rgba(255, 149, 0, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .replay-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .room-id {
+            font-size: 14px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .replay-container {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .board-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            padding: 8px;
+        }
+
+        .board-wrapper {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 0;
+            background: #fff5e6;
+            padding: 15px;
+            border-radius: 8px;
+            position: relative;
+            border: 2px solid #ff8c61;
+            width: min(95vw, 600px);
+            height: min(95vw, 600px);
+            max-height: min(80vh, 600px);
+            aspect-ratio: 1 / 1;
+        }
+
+        .board::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                linear-gradient(#ff8c61 1px, transparent 1px),
+                linear-gradient(90deg, #ff8c61 1px, transparent 1px);
+            background-size: calc(100% / 15) calc(100% / 15);
+            background-position: center;
+            pointer-events: none;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .piece {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            max-width: 26px;
+            max-height: 26px;
+            min-width: 12px;
+            min-height: 12px;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: place 0.3s ease;
+        }
+
+        @keyframes place {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        .piece.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .piece.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .piece.last-move::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ff0000;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .controls-section {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .panel-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(255, 149, 0, 0.1);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #999;
+            margin-bottom: 16px;
+        }
+
+        .replay-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .control-btn:hover {
+            background: #eee;
+        }
+
+        .control-btn.primary {
+            background: linear-gradient(135deg, #ff9500, #ff8c00);
+            color: white;
+        }
+
+        .control-btn.primary:hover {
+            box-shadow: 0 4px 16px rgba(255, 149, 0, 0.3);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9500, #ffb347);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .move-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .move-info-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .current-player {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: #fafafa;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .player-indicator {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+
+        .player-indicator.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+
+        .player-indicator.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            border: 2px solid #ddd;
+        }
+
+        .move-list {
+            max-height: 400px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .move-item {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .move-item:hover {
+            transform: scale(1.1);
+        }
+
+        .move-item.black {
+            background: #333;
+            color: white;
+        }
+
+        .move-item.white {
+            background: #eee;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .move-item.current {
+            box-shadow: 0 0 0 2px #ff9500;
+        }
+
+        .move-number {
+            font-size: 11px;
+            color: #999;
+            text-align: center;
+        }
+
+        .game-info {
+            margin-top: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #999;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .winner-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .winner-tag.win {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+        }
+
+        .winner-tag.lose {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+        }
+
+        .winner-tag.draw {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .replay-container {
+                gap: 16px;
+            }
+
+            .controls-section {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            /* 棋盘保持固定大小，支持横向滚动 */
+            .board-section {
+                overflow-x: auto;
+            }
+
+            .board {
+                width: 480px;
+                height: 480px;
+                min-width: 480px;
+            }
+
+            .panel-card {
+                padding: 16px;
+            }
+
+            .panel-title {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 8px;
+            }
+
+            .header {
+                padding: 12px 16px;
+                margin-bottom: 12px;
+            }
+
+            .replay-title {
+                font-size: 18px;
+            }
+
+            .replay-container {
+                flex-direction: column;
+            }
+
+            .controls-section {
+                width: 100%;
+            }
+
+            .board-wrapper {
+                padding: 8px;
+                overflow-x: auto;
+            }
+
+            /* 棋盘保持固定大小 */
+            .board {
+                width: 480px;
+                height: 480px;
+                min-width: 480px;
+            }
+
+            .panel-card {
+                padding: 12px;
+            }
+
+            .control-btn {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .move-info {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .replay-title {
+                font-size: 16px;
+            }
+
+            .room-id {
+                font-size: 12px;
+            }
+
+            /* 棋盘保持固定大小，允许滚动 */
+            .board {
+                width: 420px;
+                height: 420px;
+                min-width: 420px;
+            }
+
+            .control-btn {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            .panel-card {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <button class="back-btn" onclick="goBack()">← 返回</button>
+        <div style="text-align: center;">
+            <div class="replay-title">对局复盘</div>
+            <div class="room-id">房间: <span id="roomId">-</span></div>
+        </div>
+        <div style="width: 80px;"></div>
+    </header>
+
+    <div class="replay-container">
+        <div class="board-section">
+            <div class="board-wrapper">
+                <div class="board" id="board"></div>
+            </div>
+
+            <div class="panel-card" style="width: 100%; margin-top: 20px;">
+                <div class="panel-title">对局信息</div>
+                <div class="game-info" id="gameInfo"></div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="panel-card">
+                <div class="panel-title">回放控制</div>
+                <div class="replay-controls">
+                    <div class="control-row">
+                        <button class="control-btn" onclick="goToStart()">⏮</button>
+                        <button class="control-btn" onclick="goToPrev()">◀</button>
+                        <button class="control-btn primary" id="playPauseBtn" onclick="togglePlay()">▶</button>
+                        <button class="control-btn" onclick="goToNext()">▶</button>
+                        <button class="control-btn" onclick="goToEnd()">⏭</button>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <div class="move-info">
+                        <span class="move-info-text">第 <span id="currentMove">0</span> / <span id="totalMoves">0</span> 手</span>
+                    </div>
+                    <div class="current-player">
+                        <div class="player-indicator" id="currentPlayerIndicator"></div>
+                        <span id="currentPlayerText">黑方执子</span>
+                    </div>
+                    <div class="control-row">
+                        <button class="control-btn" onclick="setSpeed(2000)">0.5x</button>
+                        <button class="control-btn" onclick="setSpeed(1000)">1x</button>
+                        <button class="control-btn" onclick="setSpeed(500)">2x</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-title">落子记录</div>
+                <div class="move-list" id="moveList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let boardState = new Array(15 * 15).fill(0);
+        let moves = [];
+        let currentMoveIndex = -1;
+        let isPlaying = false;
+        let playInterval = null;
+        let playSpeed = 1000;
+        let replayData = null;
+
+        // 初始化
+        function init() {
+            // 从 sessionStorage 获取复盘数据
+            const replayStr = sessionStorage.getItem('replayData');
+            if (replayStr) {
+                replayData = JSON.parse(replayStr);
+                document.getElementById('roomId').textContent = sessionStorage.getItem('replayRoomId') || '-';
+                moves = replayData.moves || [];
+                document.getElementById('totalMoves').textContent = moves.length;
+            }
+
+            initBoard();
+            renderMoveList();
+            updateGameInfo();
+            updateDisplay();
+        }
+
+        function initBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            for (let i = 0; i < 225; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                board.appendChild(cell);
+            }
+        }
+
+        function renderBoard() {
+            const cells = document.querySelectorAll('.cell');
+
+            // 清除所有棋子
+            cells.forEach(cell => {
+                const existingPiece = cell.querySelector('.piece');
+                if (existingPiece) {
+                    existingPiece.remove();
+                }
+            });
+
+            // 渲染到当前步数
+            for (let i = 0; i <= currentMoveIndex && i < moves.length; i++) {
+                const move = moves[i];
+                const index = move.x * 15 + move.y;
+                const cell = cells[index];
+
+                const piece = document.createElement('div');
+                piece.className = 'piece ' + (move.color === 1 ? 'black' : 'white');
+
+                // 标记最后一步
+                if (i === currentMoveIndex) {
+                    piece.classList.add('last-move');
+                }
+
+                cell.appendChild(piece);
+            }
+        }
+
+        function renderMoveList() {
+            const container = document.getElementById('moveList');
+            container.innerHTML = '';
+
+            moves.forEach((move, i) => {
+                const colLabel = String.fromCharCode(65 + move.y);
+                const rowLabel = 15 - move.x;
+                const notation = `${colLabel}${rowLabel}`;
+
+                const moveDiv = document.createElement('div');
+                moveDiv.className = `move-item ${move.color === 1 ? 'black' : 'white'} ${i === currentMoveIndex ? 'current' : ''}`;
+                moveDiv.textContent = i + 1;
+                moveDiv.title = `第 ${i + 1} 手: ${notation}`;
+                moveDiv.onclick = () => goToMove(i);
+
+                container.appendChild(moveDiv);
+            });
+        }
+
+        function updateDisplay() {
+            document.getElementById('currentMove').textContent = currentMoveIndex + 1;
+            document.getElementById('progressFill').style.width = ((currentMoveIndex + 1) / moves.length * 100) + '%';
+
+            // 更新当前执子方
+            const nextColor = (currentMoveIndex + 1) % 2 === 0 ? 1 : 2;
+            const indicator = document.getElementById('currentPlayerIndicator');
+            const text = document.getElementById('currentPlayerText');
+
+            indicator.className = 'player-indicator ' + (nextColor === 1 ? 'black' : 'white');
+            text.textContent = nextColor === 1 ? '黑方执子' : '白方执子';
+
+            renderBoard();
+            renderMoveList();
+        }
+
+        function updateGameInfo() {
+            const container = document.getElementById('gameInfo');
+
+            // 模拟对局信息
+            const winner = replayData?.winner || '游戏进行中';
+            const totalMoves = moves.length;
+
+            container.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">对局结果</span>
+                    <span class="info-value">${winner}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">总手数</span>
+                    <span class="info-value">${totalMoves} 手</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">黑方</span>
+                    <span class="info-value">先手</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">白方</span>
+                    <span class="info-value">后手</span>
+                </div>
+            `;
+        }
+
+        function goToMove(index) {
+            stopPlay();
+            currentMoveIndex = index;
+            updateDisplay();
+        }
+
+        function goToStart() {
+            stopPlay();
+            currentMoveIndex = -1;
+            updateDisplay();
+        }
+
+        function goToEnd() {
+            stopPlay();
+            currentMoveIndex = moves.length - 1;
+            updateDisplay();
+        }
+
+        function goToPrev() {
+            stopPlay();
+            if (currentMoveIndex > -1) {
+                currentMoveIndex--;
+                updateDisplay();
+            }
+        }
+
+        function goToNext() {
+            stopPlay();
+            if (currentMoveIndex < moves.length - 1) {
+                currentMoveIndex++;
+                updateDisplay();
+            }
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                stopPlay();
+            } else {
+                startPlay();
+            }
+        }
+
+        function startPlay() {
+            if (currentMoveIndex >= moves.length - 1) {
+                currentMoveIndex = -1;
+            }
+
+            isPlaying = true;
+            document.getElementById('playPauseBtn').textContent = '⏸';
+
+            playInterval = setInterval(() => {
+                if (currentMoveIndex < moves.length - 1) {
+                    currentMoveIndex++;
+                    updateDisplay();
+                } else {
+                    stopPlay();
+                }
+            }, playSpeed);
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            document.getElementById('playPauseBtn').textContent = '▶';
+
+            if (playInterval) {
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+        }
+
+        function setSpeed(speed) {
+            playSpeed = speed;
+            if (isPlaying) {
+                stopPlay();
+                startPlay();
+            }
+        }
+
+        function goBack() {
+            sessionStorage.removeItem('replayData');
+            sessionStorage.removeItem('replayRoomId');
+            window.location.href = 'home.html';
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'ArrowLeft':
+                    goToPrev();
+                    break;
+                case 'ArrowRight':
+                    goToNext();
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    togglePlay();
+                    break;
+                case 'Home':
+                    goToStart();
+                    break;
+                case 'End':
+                    goToEnd();
+                    break;
+            }
+        });
+
+        // 页面加载时初始化
+        window.onload = init;
+
+        // 页面卸载时清理
+        window.onbeforeunload = function() {
+            stopPlay();
+        };
+    </script>
+</body>
+</html>

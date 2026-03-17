@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户设置 - 五子棋对战平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .setting-group {
+            margin-bottom: 30px;
+        }
+
+        .setting-group h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            color: #555;
+            font-size: 15px;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* 开关样式 */
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* 滑块样式 */
+        input[type="range"] {
+            width: 150px;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        /* 选择框样式 */
+        select {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 22px;
+            color: #667eea;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateX(-3px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .value-display {
+            min-width: 40px;
+            text-align: right;
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="goBack()">←</button>
+
+    <div class="container">
+        <h1>⚙️ 用户设置</h1>
+
+        <div class="loading" id="loading">
+            <p>加载中...</p>
+        </div>
+
+        <div id="settingsContent">
+            <!-- 音效设置 -->
+            <div class="setting-group">
+                <h3>🔊 音效设置</h3>
+
+                <div class="setting-item">
+                    <span class="setting-label">启用音效</span>
+                    <div class="setting-control">
+                        <label class="switch">
+                            <input type="checkbox" id="soundEnabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">音效音量</span>
+                    <div class="setting-control">
+                        <input type="range" id="soundVolume" min="0" max="100" value="80">
+                        <span class="value-display" id="soundVolumeValue">80</span>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">启用背景音乐</span>
+                    <div class="setting-control">
+                        <label class="switch">
+                            <input type="checkbox" id="musicEnabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">音乐音量</span>
+                    <div class="setting-control">
+                        <input type="range" id="musicVolume" min="0" max="100" value="60">
+                        <span class="value-display" id="musicVolumeValue">60</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 界面设置 -->
+            <div class="setting-group">
+                <h3>🎨 界面设置</h3>
+
+                <div class="setting-item">
+                    <span class="setting-label">棋盘主题</span>
+                    <div class="setting-control">
+                        <select id="boardTheme">
+                            <option value="classic">经典木纹</option>
+                            <option value="modern">现代简约</option>
+                            <option value="dark">暗黑模式</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">棋子样式</span>
+                    <div class="setting-control">
+                        <select id="pieceStyle">
+                            <option value="classic">经典样式</option>
+                            <option value="modern">现代样式</option>
+                            <option value="minimal">简约样式</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 其他设置 -->
+            <div class="setting-group">
+                <h3>📱 其他设置</h3>
+
+                <div class="setting-item">
+                    <span class="setting-label">显示积分</span>
+                    <div class="setting-control">
+                        <label class="switch">
+                            <input type="checkbox" id="showRating">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">自动匹配</span>
+                    <div class="setting-control">
+                        <label class="switch">
+                            <input type="checkbox" id="autoMatch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">语言</span>
+                    <div class="setting-control">
+                        <select id="language">
+                            <option value="zh-CN">简体中文</option>
+                            <option value="en-US">English</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="saveSettings()">💾 保存设置</button>
+        </div>
+    </div>
+
+    <script src="js/api-client.js"></script>
+    <script>
+        let currentSettings = {};
+
+        // 页面加载时获取设置
+        window.onload = async function() {
+            await loadSettings();
+        };
+
+        async function loadSettings() {
+            try {
+                const response = await api.getSettings();
+                currentSettings = response.data || {};
+                applySettingsToUI(currentSettings);
+            } catch (error) {
+                console.error('加载设置失败:', error);
+                // 使用默认值
+                currentSettings = {
+                    soundEnabled: true,
+                    musicEnabled: true,
+                    soundVolume: 80,
+                    musicVolume: 60,
+                    boardTheme: 'classic',
+                    pieceStyle: 'classic',
+                    showRating: true,
+                    autoMatch: true,
+                    language: 'zh-CN'
+                };
+                applySettingsToUI(currentSettings);
+            }
+        }
+
+        function applySettingsToUI(settings) {
+            // 设置复选框状态
+            document.getElementById('soundEnabled').checked = settings.soundEnabled ?? true;
+            document.getElementById('musicEnabled').checked = settings.musicEnabled ?? true;
+            document.getElementById('showRating').checked = settings.showRating ?? true;
+            document.getElementById('autoMatch').checked = settings.autoMatch ?? true;
+
+            // 设置滑块值
+            document.getElementById('soundVolume').value = settings.soundVolume ?? 80;
+            document.getElementById('musicVolume').value = settings.musicVolume ?? 60;
+            document.getElementById('soundVolumeValue').textContent = settings.soundVolume ?? 80;
+            document.getElementById('musicVolumeValue').textContent = settings.musicVolume ?? 60;
+
+            // 设置选择框值
+            document.getElementById('boardTheme').value = settings.boardTheme ?? 'classic';
+            document.getElementById('pieceStyle').value = settings.pieceStyle ?? 'classic';
+            document.getElementById('language').value = settings.language ?? 'zh-CN';
+        }
+
+        async function saveSettings() {
+            const settings = {
+                soundEnabled: document.getElementById('soundEnabled').checked,
+                musicEnabled: document.getElementById('musicEnabled').checked,
+                soundVolume: parseInt(document.getElementById('soundVolume').value),
+                musicVolume: parseInt(document.getElementById('musicVolume').value),
+                boardTheme: document.getElementById('boardTheme').value,
+                pieceStyle: document.getElementById('pieceStyle').value,
+                showRating: document.getElementById('showRating').checked,
+                autoMatch: document.getElementById('autoMatch').checked,
+                language: document.getElementById('language').value
+            };
+
+            try {
+                document.getElementById('loading').classList.add('active');
+                await api.updateSettings(settings);
+                alert('设置已保存！');
+                currentSettings = settings;
+            } catch (error) {
+                console.error('保存设置失败:', error);
+                alert('保存失败，请稍后重试');
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // 滑块值显示更新
+        document.getElementById('soundVolume').addEventListener('input', function(e) {
+            document.getElementById('soundVolumeValue').textContent = e.target.value;
+        });
+
+        document.getElementById('musicVolume').addEventListener('input', function(e) {
+            document.getElementById('musicVolumeValue').textContent = e.target.value;
+        });
+    </script>
+</body>
+</html>

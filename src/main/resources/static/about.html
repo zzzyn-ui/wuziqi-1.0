@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于我们 - 五子棋对战平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 50%, #ffd4c4 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.15);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #ff6b35;
+        }
+        .header h1 {
+            color: #ff6b35;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 35px;
+        }
+        .section h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 25px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .feature-item {
+            background: #fff8f5;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .feature-icon {
+            font-size: 32px;
+        }
+        .feature-text h3 {
+            color: #ff6b35;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .feature-text p {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: transform 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 24px 20px;
+                border-radius: 12px;
+            }
+
+            .header {
+                margin-bottom: 24px;
+                padding-bottom: 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .section {
+                margin-bottom: 25px;
+            }
+
+            .section h2 {
+                font-size: 18px;
+            }
+
+            .section p {
+                font-size: 14px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+
+            .stat-card {
+                padding: 20px;
+            }
+
+            .stat-number {
+                font-size: 30px;
+            }
+
+            .features-list {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-item {
+                padding: 15px;
+            }
+
+            .back-btn {
+                padding: 10px 24px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            .container {
+                padding: 20px 16px;
+                border-radius: 10px;
+            }
+
+            .header {
+                margin-bottom: 20px;
+                padding-bottom: 12px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header p {
+                font-size: 13px;
+            }
+
+            .section {
+                margin-bottom: 20px;
+            }
+
+            .section h2 {
+                font-size: 16px;
+            }
+
+            .section p {
+                font-size: 13px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stat-number {
+                font-size: 28px;
+            }
+
+            .stat-label {
+                font-size: 13px;
+            }
+
+            .feature-item {
+                padding: 12px;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .back-btn {
+                padding: 8px 20px;
+                font-size: 13px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 关于我们</h1>
+            <p>专业的在线五子棋对战平台</p>
+        </div>
+
+        <div class="section">
+            <h2>🏢 平台简介</h2>
+            <p>五子棋对战平台是一款专业的在线对弈游戏平台，致力于为五子棋爱好者提供优质的竞技体验。平台成立于2024年，已发展成为国内领先的五子棋在线对战平台。</p>
+            <p>我们拥有先进的AI算法、流畅的游戏体验、完善的匹配系统，让每一位玩家都能享受到五子棋的乐趣。</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">50万+</div>
+                <div class="stat-label">注册用户</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">100万+</div>
+                <div class="stat-label">对局总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">99.9%</div>
+                <div class="stat-label">服务可用性</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✨ 平台特色</h2>
+            <div class="features-list">
+                <div class="feature-item">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-text">
+                        <h3>智能AI</h3>
+                        <p>多难度AI陪练，助你提升棋艺</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-text">
+                        <h3>极速匹配</h3>
+                        <p>秒级匹配对手，立即开始对局</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🏆</div>
+                    <div class="feature-text">
+                        <h3>段位系统</h3>
+                        <p>完善的积分段位，见证你的成长</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-text">
+                        <h3>数据分析</h3>
+                        <p>详细的对局数据，复盘每一局</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-text">
+                        <h3>安全可靠</h3>
+                        <p>反外挂系统，公平竞技环境</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📱</div>
+                    <div class="feature-text">
+                        <h3>多端支持</h3>
+                        <p>PC、手机、平板随时随地畅玩</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎮 游戏模式</h2>
+            <p><strong>人机对战：</strong>与AI对弈，简单/中等/困难三种难度任选，适合新手练习和高手挑战。</p>
+            <p><strong>在线对战：</strong>真人实时匹配，休闲模式轻松娱乐，竞技模式冲击排行榜。</p>
+            <p><strong>本地对战：</strong>双人同屏对弈，适合朋友聚会、亲子互动。</p>
+        </div>
+
+        <div class="section">
+            <h2>👥 团队介绍</h2>
+            <p>我们的团队由资深游戏开发者和五子棋爱好者组成，拥有丰富的游戏开发经验。我们热爱五子棋，致力于打造最优质的在线对弈平台。</p>
+            <p>如果你也热爱五子棋，欢迎加入我们！</p>
+        </div>
+
+        <div class="section">
+            <h2>📮 联系我们</h2>
+            <p>如有任何问题或建议，欢迎通过以下方式联系我们：</p>
+            <p>📧 邮箱：contact@gobang.com</p>
+            <p>🐧 QQ群：123456789</p>
+            <p>💬 微信：gobang_official</p>
+        </div>
+
+        <button class="back-btn" onclick="window.location.href='index.html'">返回首页</button>
+    </div>
+</body>
+</html>

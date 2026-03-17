@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建房间 - 五子棋对战平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 50%, #ffd4c4 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .room-container {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 80px rgba(255, 107, 53, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            color: #ff6b35;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateX(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        }
+
+        .room-header {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8c61 50%, #ffa07a 100%);
+            padding: 24px;
+            text-align: center;
+            color: white;
+        }
+
+        .room-header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .room-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .room-content {
+            padding: 32px 24px;
+        }
+
+        .room-card {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .room-id-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ff6b35;
+            letter-spacing: 4px;
+            margin: 16px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .room-label {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .copy-box {
+            background: white;
+            border: 2px dashed #ff8c61;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .room-url {
+            flex: 1;
+            color: #666;
+            font-size: 12px;
+            word-break: break-all;
+            margin-right: 12px;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        }
+
+        .qr-section {
+            margin: 20px 0;
+        }
+
+        .qr-placeholder {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ccc;
+        }
+
+        .player-status {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .player-slot {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .player-slot.empty {
+            border: 2px dashed #ddd;
+        }
+
+        .player-slot.filled {
+            border: 2px solid #ff8c61;
+            background: #fff5f0;
+        }
+
+        .player-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 auto 8px;
+        }
+
+        .player-slot.empty .player-avatar {
+            background: #e9ecef;
+            color: #ccc;
+        }
+
+        .player-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .player-role {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .waiting-animation {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            background: #ff8c61;
+            border-radius: 50%;
+            animation: bounce 1.4s ease-in-out infinite;
+        }
+
+        .dot:nth-child(1) { animation-delay: 0s; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .waiting-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #eee;
+        }
+
+        .btn-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-danger:hover {
+            background: #f5c6cb;
+        }
+
+        /* 游戏开始弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+            animation: modalIn 0.3s ease;
+            max-width: 400px;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .modal-text {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            z-index: 2000;
+            display: none;
+        }
+
+        .toast.show {
+            display: block;
+            animation: toastIn 0.3s ease;
+        }
+
+        @keyframes toastIn {
+            from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .room-container {
+                border-radius: 16px;
+            }
+
+            .room-header {
+                padding: 16px;
+            }
+
+            .room-header h1 {
+                font-size: 18px;
+            }
+
+            .room-content {
+                padding: 20px 16px;
+            }
+
+            .room-id-display {
+                font-size: 36px;
+            }
+
+            .player-status {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .player-avatar {
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+            }
+
+            .btn {
+                padding: 14px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .room-id-display {
+                font-size: 28px;
+                letter-spacing: 2px;
+            }
+
+            .copy-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .qr-placeholder {
+                width: 140px;
+                height: 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="room-container">
+        <button class="back-btn" onclick="goBack()" title="返回">←</button>
+        <div class="room-header">
+            <h1>创建房间</h1>
+            <p>邀请好友一起对战</p>
+        </div>
+
+        <div class="room-content">
+            <div class="room-card">
+                <div class="room-label">房间号</div>
+                <div class="room-id-display" id="roomId">------</div>
+
+                <div class="copy-box">
+                    <div class="room-url" id="roomUrl">https://game.com/join/------</div>
+                    <button class="copy-btn" onclick="copyLink()">复制链接</button>
+                </div>
+
+                <div class="qr-section">
+                    <div class="room-label">扫码加入</div>
+                    <div class="qr-placeholder" id="qrCode">
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px;">📱</div>
+                            <div style="font-size: 12px;">二维码</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="player-status">
+                <div class="player-slot filled">
+                    <div class="player-avatar" id="hostAvatar">?</div>
+                    <div class="player-name" id="hostName">房主</div>
+                    <div class="player-role">执黑先行</div>
+                </div>
+                <div class="player-slot empty" id="guestSlot">
+                    <div class="player-avatar">?</div>
+                    <div class="player-name">等待加入</div>
+                    <div class="player-role">执白后手</div>
+                </div>
+            </div>
+
+            <div class="waiting-animation">
+                <div class="dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="waiting-text">等待好友加入房间...</div>
+            </div>
+
+            <div style="margin-top: 24px;">
+                <button class="btn btn-primary" id="startBtn" onclick="startGame()">开始本地对战</button>
+                <button class="btn btn-secondary" onclick="shareRoom()">分享给好友</button>
+                <button class="btn btn-danger" onclick="cancelRoom()">取消房间</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 好友加入弹窗 -->
+    <div class="modal" id="joinModal">
+        <div class="modal-content">
+            <div class="modal-icon">🎉</div>
+            <div class="modal-title">好友加入了！</div>
+            <div class="modal-text" id="joinPlayerName">好友</div>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeJoinModal()">稍等片刻</button>
+                <button class="modal-btn primary" onclick="startGame()">立即开始</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div class="toast" id="toast">已复制到剪贴板</div>
+
+    <script>
+        let ws = null;
+        let sequenceId = 0;
+        let currentUser = null;
+        let roomId = null;
+        let opponentJoined = false;
+
+        const MessageType = {
+            UNKNOWN: 0,
+            CREATE_ROOM: 15,
+            JOIN_ROOM: 16,
+            ROOM_JOINED: 17,
+            ROOM_PLAYER_LEFT: 18,
+            GAME_STATE: 22
+        };
+
+        // 初始化
+        function init() {
+            // 获取用户信息
+            const userStr = localStorage.getItem('currentUser');
+            if (!userStr) {
+                alert('请先登录');
+                window.location.href = 'login.html';
+                return;
+            }
+            currentUser = JSON.parse(userStr);
+
+            // 更新房主信息
+            document.getElementById('hostName').textContent = currentUser.nickname || '房主';
+            document.getElementById('hostAvatar').textContent = (currentUser.nickname || '?').charAt(0).toUpperCase();
+
+            // 生成房间号
+            roomId = generateRoomId();
+            document.getElementById('roomId').textContent = roomId;
+
+            // 获取服务器IP地址用于生成完整URL
+            const serverHost = window.location.hostname || 'localhost';
+            const serverPort = window.location.port || '9090';
+            document.getElementById('roomUrl').textContent = `http://${serverHost}:${serverPort}/join.html?room=${roomId}`;
+
+            // 显示玩家积分
+            if (currentUser.rating) {
+                const hostSlot = document.querySelector('.player-slot.filled');
+                const ratingDiv = document.createElement('div');
+                ratingDiv.style.cssText = 'font-size: 12px; color: #999; margin-top: 4px;';
+                ratingDiv.textContent = `积分: ${currentUser.rating}`;
+                hostSlot.appendChild(ratingDiv);
+            }
+
+            // 连接WebSocket并创建房间
+            connect();
+        }
+
+        function generateRoomId() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function connect() {
+            // 动态获取WebSocket地址 - 根据当前页面地址
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname;
+            const wsPort = '8083';
+            const wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                // 创建房间
+                sendMessage(MessageType.CREATE_ROOM, {
+                    room_id: roomId,
+                    user_info: currentUser
+                });
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    console.log('Received:', msg);
+                    handleMessage(msg);
+                } catch (e) {
+                    console.error('Message error:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                if (!opponentJoined) {
+                    console.log('Disconnected');
+                    // 显示重连提示
+                    showToast('连接断开，请刷新页面');
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function sendMessage(type, body = null) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                return false;
+            }
+
+            const packet = {
+                type: type,
+                sequence_id: ++sequenceId,  // 使用下划线命名匹配后端
+                timestamp: Date.now()
+            };
+
+            if (body) {
+                packet.body = body;
+            }
+
+            console.log('Sending message:', packet);
+            ws.send(JSON.stringify(packet));
+            return true;
+        }
+
+        function handleMessage(msg) {
+            console.log('Handling message type:', msg.type);
+
+            switch (msg.type) {
+                case MessageType.CREATE_ROOM:
+                    // 创建房间成功
+                    console.log('CREATE_ROOM response:', msg);
+                    if (msg.body && msg.body.success) {
+                        console.log('Room created:', msg.body.room_id);
+                        roomId = msg.body.room_id;
+                        document.getElementById('roomId').textContent = roomId;
+                    }
+                    break;
+                case MessageType.ROOM_JOINED:
+                    handlePlayerJoined(msg);
+                    break;
+                case MessageType.GAME_STATE:
+                    // 收到游戏状态，直接跳转到游戏页面
+                    console.log('Game state received, redirecting to game...');
+                    if (msg.room_id) {
+                        window.location.href = `game.html?room=${msg.room_id}&my_color=${msg.my_color || 1}`;
+                    }
+                    break;
+                default:
+                    console.log('Unhandled message type:', msg.type, 'Message:', msg);
+            }
+        }
+
+        function handlePlayerJoined(msg) {
+            console.log('Player joined:', msg);
+            const player = msg.player || {};
+            opponentJoined = true;
+
+            // 更新对手信息
+            const guestSlot = document.getElementById('guestSlot');
+            guestSlot.classList.remove('empty');
+            guestSlot.classList.add('filled');
+            guestSlot.querySelector('.player-avatar').textContent = (player.nickname || '?').charAt(0).toUpperCase();
+            guestSlot.querySelector('.player-name').textContent = player.nickname || '好友';
+
+            // 显示提示
+            showToast(`${player.nickname || '好友'} 已加入，游戏即将开始...`);
+
+            // 游戏自动开始，等待服务器发送游戏状态
+            setTimeout(() => {
+                // 如果2秒后还没收到游戏状态，提示手动点击
+                if (!document.hidden) {
+                    document.getElementById('startBtn').disabled = false;
+                }
+            }, 2000);
+        }
+
+        function closeJoinModal() {
+            document.getElementById('joinModal').classList.remove('show');
+        }
+
+        function copyLink() {
+            const url = document.getElementById('roomUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('链接已复制到剪贴板');
+            }).catch(() => {
+                // 降级方案
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('链接已复制到剪贴板');
+            });
+        }
+
+        function shareRoom() {
+            if (navigator.share) {
+                navigator.share({
+                    title: '五子棋对战',
+                    text: `${currentUser.nickname || '我'} 邀请你来下五子棋！`,
+                    url: document.getElementById('roomUrl').textContent
+                }).catch(() => {
+                    copyLink();
+                });
+            } else {
+                copyLink();
+            }
+        }
+
+        function startGame() {
+            closeJoinModal();
+
+            // 在线房间对战：跳转到游戏页面，通过WebSocket同步
+            // 房主执黑棋先手
+            window.location.href = 'game.html?room=' + roomId + '&my_color=1';
+        }
+
+        function cancelRoom() {
+            if (confirm('确定要取消房间吗？')) {
+                if (ws) {
+                    ws.close();
+                }
+                window.location.href = 'index.html';
+            }
+        }
+
+        function goBack() {
+            if (confirm('确定要返回吗？房间将被取消')) {
+                if (ws) {
+                    ws.close();
+                }
+                window.location.href = 'index.html';
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // 页面卸载时清理
+        window.onbeforeunload = function() {
+            if (ws) {
+                ws.close();
+            }
+        };
+
+        // 初始化
+        window.onload = init;
+    </script>
+</body>
+</html>
