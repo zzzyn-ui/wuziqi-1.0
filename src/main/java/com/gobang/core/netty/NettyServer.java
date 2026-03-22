@@ -7,6 +7,7 @@ import com.gobang.core.handler.GameHandler;
 import com.gobang.core.handler.MatchHandler;
 import com.gobang.core.handler.ObserverHandler;
 import com.gobang.core.handler.RoomHandler;
+import com.gobang.core.netty.HttpApiHandler;
 import com.gobang.core.netty.JsonMessageHandler;
 import com.gobang.core.protocol.MessageHandler;
 import com.gobang.core.protocol.MessageType;
@@ -18,6 +19,7 @@ import com.gobang.core.social.ObserverManager;
 import com.gobang.service.AuthService;
 import com.gobang.service.ChatService;
 import com.gobang.service.FriendService;
+import com.gobang.service.FriendGroupService;
 import com.gobang.service.GameService;
 import com.gobang.service.RoomService;
 import com.gobang.service.UserService;
@@ -77,14 +79,28 @@ public class NettyServer {
     private final ObserverManager observerManager;
     private final RateLimitManager rateLimitManager;
     private final JwtUtil jwtUtil;
+    private final com.gobang.service.UserSettingsService userSettingsService;
+    private final com.gobang.service.ActivityLogService activityLogService;
+    private final com.gobang.service.GameFavoriteService gameFavoriteService;
+    private final com.gobang.service.GameInvitationService gameInvitationService;
+    private final com.gobang.service.RecordService recordService;
+    private final com.gobang.service.PuzzleService puzzleService;
+    private final com.gobang.service.FriendGroupService friendGroupService;
 
     public NettyServer(String host, int port, int bossThreads, int workerThreads,
                        int readTimeout, int writeTimeout, AuthService authService,
                        UserService userService, GameService gameService, RoomService roomService,
                        ChatService chatService, FriendService friendService,
+                       FriendGroupService friendGroupService,
                        RoomManager roomManager, FriendManager friendManager,
                        ChatManager chatManager, ObserverManager observerManager,
-                       RateLimitManager rateLimitManager, JwtUtil jwtUtil) {
+                       RateLimitManager rateLimitManager, JwtUtil jwtUtil,
+                       com.gobang.service.UserSettingsService userSettingsService,
+                       com.gobang.service.ActivityLogService activityLogService,
+                       com.gobang.service.GameFavoriteService gameFavoriteService,
+                       com.gobang.service.GameInvitationService gameInvitationService,
+                       com.gobang.service.RecordService recordService,
+                       com.gobang.service.PuzzleService puzzleService) {
         this.host = host;
         this.port = port;
         this.bossThreads = bossThreads;
@@ -97,12 +113,19 @@ public class NettyServer {
         this.roomService = roomService;
         this.chatService = chatService;
         this.friendService = friendService;
+        this.friendGroupService = friendGroupService;
         this.roomManager = roomManager;
         this.friendManager = friendManager;
         this.chatManager = chatManager;
         this.observerManager = observerManager;
         this.rateLimitManager = rateLimitManager;
         this.jwtUtil = jwtUtil;
+        this.userSettingsService = userSettingsService;
+        this.activityLogService = activityLogService;
+        this.gameFavoriteService = gameFavoriteService;
+        this.gameInvitationService = gameInvitationService;
+        this.recordService = recordService;
+        this.puzzleService = puzzleService;
         this.channelManager = new ChannelManager();
     }
 
@@ -128,28 +151,28 @@ public class NettyServer {
 
                             // HTTP编解码
                             pipeline.addLast(new HttpServerCodec());
+
+                            // HTTP对象聚合器（必须在 WebSocketServerProtocolHandler 之前）
                             pipeline.addLast(new HttpObjectAggregator(65536));
 
-                            // 自定义WebSocket处理器（必须在WebSocketServerProtocolHandler之前，用于处理HTTP请求）
-                            webSocketHandler = new WebSocketHandler(channelManager, userService, authService, roomManager, friendService, jwtUtil, friendManager);
+                            // 分块写入支持（在 WebSocket 之前）
+                            pipeline.addLast(new ChunkedWriteHandler());
+
+                            // WebSocket协议处理
+                            pipeline.addLast(new WebSocketServerProtocolHandler("/ws", null, false, 8192, false));
+
+                            // 自定义WebSocket处理器
+                            webSocketHandler = new WebSocketHandler(channelManager, userService, authService, roomManager, friendService, jwtUtil, friendManager, gameService);
 
                             // 创建JsonMessageHandler并设置到WebSocketHandler
                             JsonMessageHandler jsonMessageHandler = new JsonMessageHandler(
                                 authService, userService, gameService, roomService, chatService,
-                                roomManager, chatManager);
+                                roomManager, chatManager, friendManager);
                             webSocketHandler.setJsonMessageHandler(jsonMessageHandler);
 
                             pipeline.addLast(webSocketHandler);
 
-                            pipeline.addLast(new ChunkedWriteHandler());
-
-                            // WebSocket压缩 - 已禁用，导致与某些客户端的兼容性问题
-                            // pipeline.addLast(new WebSocketServerCompressionHandler());
-
-                            // WebSocket协议处理（路径检查在升级前进行，查询参数不影响路径匹配）
-                            pipeline.addLast(new WebSocketServerProtocolHandler("/ws", null, true, 8192, false));
-
-                            // 空闲检测（移到WebSocketHandler之后，避免干扰握手）
+                            // 空闲检测
                             pipeline.addLast(new IdleStateHandler(readTimeout, writeTimeout, 0, TimeUnit.SECONDS));
 
                             // 响应编码器（自动转换Protobuf为JSON）
@@ -180,6 +203,20 @@ public class NettyServer {
     private void registerMessageHandlers() {
         // 更新WebSocketHandler的HttpRequestHandler依赖
         webSocketHandler.updateHttpRequestHandlerDependencies(friendService, userService, jwtUtil);
+
+        // 创建并设置 HttpApiHandler（包含所有 API）
+        com.gobang.core.netty.HttpApiHandler httpApiHandler = new com.gobang.core.netty.HttpApiHandler(
+            userService, authService, gameService, roomService, friendService, chatService,
+            roomManager,
+            userSettingsService,
+            activityLogService,
+            gameFavoriteService,
+            gameInvitationService,
+            recordService,
+            puzzleService,
+            jwtUtil
+        );
+        webSocketHandler.setHttpApiHandler(httpApiHandler);
 
         // 认证处理器
         MessageHandler authHandler = new AuthHandler(authService, userService, rateLimitManager, friendManager, friendService);
@@ -222,7 +259,7 @@ public class NettyServer {
         });
 
         // 聊天处理器
-        MessageHandler chatHandler = new ChatHandler(chatService, userService, roomManager, rateLimitManager);
+        MessageHandler chatHandler = new ChatHandler(chatService, userService, roomManager, rateLimitManager, friendManager);
         webSocketHandler.registerHandler(chatHandler);
 
         // 观战处理器
@@ -242,30 +279,54 @@ public class NettyServer {
         });
 
         // 好友处理器
-        MessageHandler friendHandler = new FriendHandler(friendService, userService, friendManager, rateLimitManager);
+        MessageHandler friendHandler = new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager);
         webSocketHandler.registerHandler(friendHandler);
-        webSocketHandler.registerHandler(new FriendHandler(friendService, userService, friendManager, rateLimitManager) {
+        webSocketHandler.registerHandler(new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager) {
             @Override
             public MessageType getSupportedType() {
                 return MessageType.FRIEND_ACCEPT;
             }
         });
-        webSocketHandler.registerHandler(new FriendHandler(friendService, userService, friendManager, rateLimitManager) {
+        webSocketHandler.registerHandler(new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager) {
             @Override
             public MessageType getSupportedType() {
                 return MessageType.FRIEND_REJECT;
             }
         });
-        webSocketHandler.registerHandler(new FriendHandler(friendService, userService, friendManager, rateLimitManager) {
+        webSocketHandler.registerHandler(new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager) {
             @Override
             public MessageType getSupportedType() {
                 return MessageType.FRIEND_REMOVE;
             }
         });
-        webSocketHandler.registerHandler(new FriendHandler(friendService, userService, friendManager, rateLimitManager) {
+        webSocketHandler.registerHandler(new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager) {
             @Override
             public MessageType getSupportedType() {
                 return MessageType.FRIEND_LIST;
+            }
+        });
+        webSocketHandler.registerHandler(new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager) {
+            @Override
+            public MessageType getSupportedType() {
+                return MessageType.FRIEND_REMARK;
+            }
+        });
+        webSocketHandler.registerHandler(new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager) {
+            @Override
+            public MessageType getSupportedType() {
+                return MessageType.FRIEND_GROUP_CREATE;
+            }
+        });
+        webSocketHandler.registerHandler(new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager) {
+            @Override
+            public MessageType getSupportedType() {
+                return MessageType.FRIEND_GROUP_LIST;
+            }
+        });
+        webSocketHandler.registerHandler(new FriendHandler(friendService, friendGroupService, userService, friendManager, rateLimitManager) {
+            @Override
+            public MessageType getSupportedType() {
+                return MessageType.FRIEND_MOVE_GROUP;
             }
         });
 

@@ -261,6 +261,41 @@
             color: #999;
         }
 
+        /* 实时更新指示器 */
+        .refresh-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #28a745;
+            background: #d4edda;
+            padding: 6px 12px;
+            border-radius: 12px;
+        }
+
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            background: #28a745;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+
+        .refresh-text {
+            font-weight: 500;
+        }
+
         /* 响应式 */
         @media (max-width: 768px) {
             .rank-container {
@@ -401,9 +436,15 @@
         <div class="rank-card">
             <div class="rank-header">
                 <div class="rank-title" id="rankTitle">日榜排名</div>
-                <div class="online-count">
-                    <span style="color: #28a745;">●</span>
-                    <span id="onlinePlayers">0</span> 人在线
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div class="refresh-indicator" id="refreshIndicator">
+                        <span class="refresh-dot"></span>
+                        <span class="refresh-text">实时更新中</span>
+                    </div>
+                    <div class="online-count">
+                        <span style="color: #28a745;">●</span>
+                        <span id="onlinePlayers">0</span> 人在线
+                    </div>
                 </div>
             </div>
 
@@ -417,6 +458,8 @@
         let ws = null;
         let currentTab = 'daily';
         let rankData = [];
+        let refreshInterval = null;
+        let lastUpdateTime = 0;
 
         function init() {
             // 获取用户信息
@@ -429,8 +472,34 @@
             // 显示加载状态
             showLoading();
 
+            // 首次加载排行榜数据
+            loadRankData(currentTab);
+
             // 连接WebSocket获取实时数据
             connect();
+
+            // 启动定时刷新（每5秒刷新一次）
+            startAutoRefresh();
+        }
+
+        function startAutoRefresh() {
+            // 立即刷新一次
+            loadRankData(currentTab);
+
+            // 每5秒刷新一次排行榜
+            refreshInterval = setInterval(() => {
+                loadRankData(currentTab);
+            }, 5000);
+
+            console.log('✅ 排行榜自动刷新已启动 - 每5秒更新一次');
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+                console.log('⏸️ 排行榜自动刷新已停止');
+            }
         }
 
         function showLoading() {
@@ -469,25 +538,33 @@
             };
             document.getElementById('rankTitle').textContent = titles[tab];
 
-            // 加载对应榜单数据
+            console.log(`🔄 切换到: ${titles[tab]}`);
+
+            // 立即加载对应榜单数据
             loadRankData(tab);
         }
 
         function loadRankData(tab) {
+            const now = Date.now();
+            console.log(`📊 加载排行榜数据 - 标签: ${tab}, 时间: ${new Date(now).toLocaleTimeString()}`);
+
             // 从服务器获取排行榜数据
             fetch('/api/leaderboard?limit=50')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.data && data.data.length > 0) {
+                        rankData = data.data;
                         renderRankList(data.data);
                         updateOnlineCount();
+                        lastUpdateTime = now;
+                        console.log(`✅ 排行榜已更新 - ${data.data.length} 位玩家`);
                     } else {
                         showEmptyState('暂无排行数据\n请先进行对局');
                         document.getElementById('onlinePlayers').textContent = '0';
                     }
                 })
                 .catch(error => {
-                    console.error('获取排行榜失败:', error);
+                    console.error('❌ 获取排行榜失败:', error);
                     showEmptyState('获取排行榜失败\n请稍后重试');
                     document.getElementById('onlinePlayers').textContent = '0';
                 });
@@ -526,7 +603,7 @@
                 rankNumber.textContent = index + 1;
 
                 const avatar = document.createElement('div');
-                avatar.className = `player-avatar ${player.online ? 'online' : 'offline'}`;
+                avatar.className = `player-avatar ${player.status > 0 ? 'online' : 'offline'}`;
                 avatar.textContent = (player.nickname || '?').charAt(0);
 
                 const info = document.createElement('div');
@@ -537,13 +614,15 @@
                 name.textContent = player.nickname || '匿名';
 
                 const badge = document.createElement('span');
-                badge.className = `online-badge ${player.online ? 'online' : 'offline'}`;
-                badge.textContent = player.online ? '在线' : '离线';
+                badge.className = `online-badge ${player.status > 0 ? 'online' : 'offline'}`;
+                badge.textContent = player.status > 0 ? '在线' : '离线';
                 name.appendChild(badge);
 
                 const stats = document.createElement('div');
                 stats.className = 'player-stats';
-                stats.textContent = `Lv.${player.level || 1} | 胜率 ${winRate}%`;
+                // 计算段位
+                const danRank = getDanRank(player.rating || 1200);
+                stats.textContent = `${danRank} | 胜率 ${winRate}%`;
 
                 info.appendChild(name);
                 info.appendChild(stats);
@@ -566,13 +645,7 @@
 
         function updateOnlineCount() {
             // 计算在线玩家数量
-            const onlineCount = rankData.filter(p => p.online).length;
-            document.getElementById('onlinePlayers').textContent = onlineCount;
-        }
-
-        function updateOnlineCount() {
-            // 计算在线玩家数量
-            const onlineCount = rankData.filter(p => p.online).length;
+            const onlineCount = rankData.filter(p => p.status > 0).length;
             document.getElementById('onlinePlayers').textContent = onlineCount;
         }
 
@@ -583,17 +656,34 @@
 
         function connect() {
             try {
-                // 动态获取WebSocket地址 - 根据当前页面地址
+                // 动态获取WebSocket地址 - 支持本地开发和ngrok穿透
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const hostname = window.location.hostname;
-            const wsPort = '8083';
-                const wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+                const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+                let wsUrl;
+                if (isLocalhost) {
+                    wsUrl = `${protocol}//${hostname}:8083/ws`;
+                } else {
+                    wsUrl = `${protocol}//${window.location.host}/ws`;
+                }
                 ws = new WebSocket(wsUrl);
 
                 ws.onopen = () => {
                     console.log('WebSocket connected for rank updates');
-                    // 请求排行榜数据
-                    // ws.send(JSON.stringify({ type: 'GET_RANK', tab: currentTab }));
+
+                    // 发送认证消息
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        ws.send(JSON.stringify({
+                            type: 100,  // TOKEN_AUTH
+                            sequenceId: Date.now(),
+                            timestamp: Date.now(),
+                            body: { token: token }
+                        }));
+                        console.log('Sent authentication token');
+                    } else {
+                        console.warn('No auth token found');
+                    }
                 };
 
                 ws.onmessage = (event) => {
@@ -621,6 +711,31 @@
             }
         }
 
+        // 根据积分获取段位
+        function getDanRank(rating) {
+            if (rating < 1200) {
+                return '入门棋手';
+            } else if (rating < 1400) {
+                return '初段';
+            } else if (rating < 1600) {
+                return '二段';
+            } else if (rating < 1800) {
+                return '三段';
+            } else if (rating < 2000) {
+                return '四段';
+            } else if (rating < 2200) {
+                return '五段';
+            } else if (rating < 2400) {
+                return '六段';
+            } else if (rating < 2600) {
+                return '七段';
+            } else if (rating < 2800) {
+                return '八段';
+            } else {
+                return '九段';
+            }
+        }
+
         function goBack() {
             window.location.href = 'index.html';
         }
@@ -628,12 +743,24 @@
         // 页面加载时初始化
         window.onload = init;
 
-        // 页面卸载时关闭连接
+        // 页面卸载时关闭连接和停止刷新
         window.onbeforeunload = function() {
+            stopAutoRefresh();
             if (ws) {
                 ws.close();
             }
         };
+
+        // 页面隐藏时停止刷新（节省资源）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('📄 页面隐藏，暂停刷新');
+                stopAutoRefresh();
+            } else {
+                console.log('📄 页面显示，恢复刷新');
+                startAutoRefresh();
+            }
+        });
     </script>
 </body>
 </html>

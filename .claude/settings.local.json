@@ -97,7 +97,27 @@
       "Bash(findstr \":9090.*LISTENING\")",
       "Bash(ncat -z localhost 8083)",
       "Bash(timeout 3 bash -c 'cat < /dev/tcp/localhost/8083')",
-      "Bash(findstr \"8083\")"
+      "Bash(findstr \"8083\")",
+      "Bash(git checkout:*)",
+      "Bash(cp:*)",
+      "Bash(timeout:*)",
+      "Bash(findstr 8083:*)",
+      "Bash(findstr 8080\\\\|8083:*)",
+      "Bash(findstr:*)",
+      "Bash(mvn package:*)",
+      "Bash(javap:*)",
+      "Bash(sqlite3:*)",
+      "Bash(done)",
+      "Bash(scp:*)",
+      "Bash(\"D:\\\\ruanjian\\\\redis\\\\Redis-x64-3.0.504\\\\redis-server.exe\":*)",
+      "Bash(ping:*)",
+      "Bash(./redis-server.exe:*)",
+      "WebSearch",
+      "Bash(jar:*)",
+      "Bash(redis-server.exe:*)",
+      "Bash(\"D:/ruanjian/redis/Redis-x64-3.0.504/redis-server.exe\":*)",
+      "Bash(xargs -I {} cmd //c taskkill //F //PID {})",
+      "Bash(mkdir:*)"
     ]
   }
 }

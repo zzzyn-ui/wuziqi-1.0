@@ -26,10 +26,14 @@
 
     <!-- Netty日志级别 -->
     <logger name="io.netty" level="INFO" />
+    <logger name="io.netty.handler.codec.http.websocketx" level="DEBUG" />
 
     <!-- MyBatis日志级别 -->
     <logger name="org.apache.ibatis" level="INFO" />
 
     <!-- Redis日志级别 -->
     <logger name="redis.clients" level="INFO" />
+
+    <!-- GameService日志级别 - 临时设为INFO用于诊断匹配问题 -->
+    <logger name="com.gobang.service.GameService" level="INFO" />
 </configuration>

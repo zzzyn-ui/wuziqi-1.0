@@ -372,6 +372,17 @@
             color: #999;
             margin-bottom: 24px;
         }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+            min-width: 100px;
+        }
     </style>
 </head>
 <body>
@@ -411,7 +422,10 @@
             <div class="modal-icon" id="modalIcon">🎉</div>
             <div class="modal-title" id="modalTitle">游戏结束</div>
             <div class="modal-text" id="modalText">黑方获胜</div>
-            <button class="btn btn-primary" onclick="resetGame()">再来一局</button>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="resetGame()">再来一局</button>
+                <button class="btn btn-secondary" onclick="goToHome()">返回首页</button>
+            </div>
         </div>
     </div>
 
@@ -420,6 +434,7 @@
         let currentPlayer = 1; // 1=黑, 2=白
         let gameEnded = false;
         let moveHistory = [];
+        let gameStartTime = Date.now(); // 记录游戏开始时间
 
         function init() {
             const boardEl = document.getElementById('board');
@@ -533,7 +548,51 @@
             title.textContent = winner === 1 ? '黑方获胜！' : '白方获胜！';
             text.textContent = `恭喜${winner === 1 ? '黑方' : '白方'}赢得比赛！`;
 
+            // 保存游戏记录到数据库
+            saveGameRecord(winner);
+
             modal.classList.add('show');
+        }
+
+        // 保存游戏记录
+        function saveGameRecord(winner) {
+            const userStr = localStorage.getItem('currentUser');
+            let userId = null;
+
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    userId = user.user_id || user.id || null;
+                } catch (e) {
+                    console.error('解析用户信息失败:', e);
+                }
+            }
+
+            // 如果没有登录，仍然保存记录（使用null作为用户ID）
+            const duration = Math.floor((Date.now() - gameStartTime) / 1000);
+
+            fetch('/api/game/save-record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    gameMode: 'pvp_local',
+                    winnerColor: winner, // 1=黑胜, 2=白胜
+                    moveCount: moveHistory.length,
+                    duration: duration,
+                    boardState: board.join(''),
+                    moves: JSON.stringify(moveHistory)
+                })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('✅ 本地对战记录已保存');
+                } else {
+                    console.error('❌ 保存游戏记录失败:', data.message);
+                }
+            }).catch(error => {
+                console.error('❌ 保存游戏记录出错:', error);
+            });
         }
 
         function resetGame() {
@@ -543,9 +602,14 @@
             currentPlayer = 1;
             gameEnded = false;
             moveHistory = [];
+            gameStartTime = Date.now(); // 重置游戏开始时间
 
             document.querySelectorAll('.piece').forEach(p => p.remove());
             updateTurnDisplay();
+        }
+
+        function goToHome() {
+            window.location.href = '/index.html';
         }
 
         function undo() {

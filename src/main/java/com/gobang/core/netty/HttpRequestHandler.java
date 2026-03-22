@@ -11,6 +11,7 @@ import com.gobang.service.FriendService;
 import com.gobang.service.UserService;
 import com.gobang.util.JwtUtil;
 import io.netty.buffer.Unpooled;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -24,7 +25,10 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -77,6 +81,8 @@ public class HttpRequestHandler {
     public boolean handle(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
         String uri = request.uri();
 
+        logger.info("HttpRequestHandler.handle: {} {}", request.method(), uri);
+
         // 处理API请求
         if (uri.startsWith("/api/")) {
             handleApiRequest(ctx, request, uri);
@@ -106,31 +112,76 @@ public class HttpRequestHandler {
 
         // 处理静态文件请求
         if (uri.equals("/")) {
-            uri = "/index.html";
+            uri = "/login.html";
         }
 
         // 移除查询参数，只保留路径部分用于文件查找
         String path = uri.split("\\?")[0];
         logger.debug("HTTP request: {} (path: {})", uri, path);
 
-        String filePath = actualWebRoot + path;
-        File file = new File(filePath);
+        byte[] content = null;
+        String contentType = null;
 
-        if (!file.exists() || file.isDirectory()) {
-            // 文件不存在，尝试返回index.html
-            file = new File(actualWebRoot + "/index.html");
-            if (!file.exists()) {
-                sendError(ctx, HttpResponseStatus.NOT_FOUND);
-                // 错误响应已发送，释放请求
-                return true;
+        // 尝试从文件系统加载
+        if (actualWebRoot != null) {
+            String filePath = actualWebRoot + path;
+            File file = new File(filePath);
+
+            if (file.exists() && !file.isDirectory()) {
+                try {
+                    content = Files.readAllBytes(file.toPath());
+                    contentType = getContentType(path);
+                    logger.debug("从文件系统加载: {}", path);
+                } catch (IOException e) {
+                    logger.warn("从文件系统读取失败: {}", path, e);
+                }
             }
         }
 
-        // 读取文件内容
-        byte[] content = Files.readAllBytes(file.toPath());
+        // 如果文件系统加载失败，尝试从classpath加载
+        if (content == null) {
+            // 移除开头的斜杠
+            String resourcePath = path.startsWith("/") ? path.substring(1) : path;
+            content = readStaticFileFromClasspath(resourcePath);
+            if (content == null) {
+                // 尝试添加 static/ 前缀（Spring Boot jar 结构）
+                content = readStaticFileFromClasspath("static/" + resourcePath);
+            }
+            if (content != null) {
+                contentType = getContentType(path);
+                logger.info("从classpath加载静态文件: {}", path);
+            }
+        }
 
-        // 设置响应头
-        String contentType = getContentType(file.getName());
+        // 如果是目录请求，尝试返回index.html
+        if (content == null && path.endsWith("/")) {
+            String indexPath = path + "index.html";
+            if (actualWebRoot != null) {
+                File indexFile = new File(actualWebRoot + indexPath);
+                if (indexFile.exists()) {
+                    content = Files.readAllBytes(indexFile.toPath());
+                    contentType = getContentType(indexPath);
+                }
+            }
+            if (content == null) {
+                content = readStaticFileFromClasspath(indexPath.substring(1));
+                if (content != null) {
+                    contentType = getContentType(indexPath);
+                }
+            }
+        }
+
+        if (content == null) {
+            sendError(ctx, HttpResponseStatus.NOT_FOUND);
+            // 错误响应已发送，释放请求
+            return true;
+        }
+
+        if (contentType == null) {
+            contentType = getContentType(path);
+        }
+
+        // 构建响应
         FullHttpResponse response = new DefaultFullHttpResponse(
             HttpVersion.HTTP_1_1,
             HttpResponseStatus.OK,
@@ -227,12 +278,48 @@ public class HttpRequestHandler {
     }
 
     /**
+     * 从classpath读取静态文件（用于从jar内部加载）
+     */
+    private byte[] readStaticFileFromClasspath(String resourcePath) {
+        InputStream is = null;
+        try {
+            // 尝试从classpath读取
+            is = getClass().getClassLoader().getResourceAsStream(resourcePath);
+            if (is == null) {
+                logger.debug("Resource not found in classpath: {}", resourcePath);
+                return null;
+            }
+
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            byte[] data = new byte[8192];
+            int n;
+            while ((n = is.read(data)) > 0) {
+                buffer.write(data, 0, n);
+            }
+            return buffer.toByteArray();
+        } catch (IOException e) {
+            logger.error("Failed to read resource from classpath: {}", resourcePath, e);
+            return null;
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+        }
+    }
+
+    /**
      * 处理API请求
      */
     private void handleApiRequest(ChannelHandlerContext ctx, FullHttpRequest request, String uri) {
         try {
             // 提取路径（移除查询参数）
             String path = uri.split("\\?")[0];
+
+            logger.info("处理API请求: {} {}", request.method(), path);
 
             // 处理OPTIONS预检请求
             if ("OPTIONS".equals(request.method().name())) {
@@ -255,6 +342,12 @@ public class HttpRequestHandler {
                 }
                 jsonResponse = "{\"count\":" + playingCount + ",\"rooms\":[]}";
                 logger.debug("API请求: /api/rooms/playing - 返回: " + jsonResponse);
+            } else if (path.equals("/api/leaderboard") || path.equals("/api/rank")) {
+                // 获取排行榜
+                jsonResponse = handleLeaderboard(ctx, request);
+                if (jsonResponse == null) {
+                    return; // 错误响应已发送
+                }
             } else if (path.equals("/api/friends/requests")) {
                 // 获取待处理的好友请求
                 jsonResponse = handleGetFriendRequests(ctx, request, path);
@@ -282,8 +375,13 @@ public class HttpRequestHandler {
             response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8");
             response.headers().set(HttpHeaderNames.CONTENT_LENGTH, jsonResponse.length());
             response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+            if (HttpUtil.isKeepAlive(request)) {
+                response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+            } else {
+                response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+            }
 
+            logger.info("发送API响应: status={}, length={}", status, jsonResponse.length());
             ctx.writeAndFlush(response);
         } catch (Exception e) {
             logger.error("处理API请求失败: " + uri, e);
@@ -406,6 +504,33 @@ public class HttpRequestHandler {
             return objectMapper.writeValueAsString(error);
         } catch (Exception e) {
             return "{\"success\":false,\"message\":\"" + message + "\"}";
+        }
+    }
+
+    /**
+     * 处理排行榜API请求
+     */
+    private String handleLeaderboard(ChannelHandlerContext ctx, FullHttpRequest request) {
+        try {
+            QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
+            String limitStr = decoder.parameters().getOrDefault("limit", List.of("50")).get(0);
+            int limit = Integer.parseInt(limitStr);
+
+            logger.info("获取排行榜 - limit={}", limit);
+
+            List<User> leaderboard = userService.getLeaderboard(limit);
+            logger.info("查询到 {} 位玩家", leaderboard.size());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", leaderboard);
+
+            String json = objectMapper.writeValueAsString(response);
+            logger.info("排行榜JSON: {}", json);
+            return json;
+        } catch (Exception e) {
+            logger.error("处理排行榜API失败", e);
+            return sendJsonError(500, "获取排行榜失败");
         }
     }
 }

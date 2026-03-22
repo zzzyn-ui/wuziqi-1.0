@@ -70,10 +70,21 @@ public class ResponseUtil {
             }
 
             String json = objectMapper.writeValueAsString(response);
+
+            // 检查 channel 状态
+            if (channel == null) {
+                logger.error("❌ sendJsonResponse - channel is null! type={}", type);
+                return;
+            }
+            if (!channel.isActive()) {
+                logger.error("❌ sendJsonResponse - channel is not active! type={}, channel={}", type, channel);
+                return;
+            }
+
             channel.writeAndFlush(new TextWebSocketFrame(json));
-            logger.debug("Sent JSON response: type={}", type);
+            logger.info("✅ sendJsonResponse 成功 - type={}, channel.isActive()={}", type, channel.isActive());
         } catch (Exception e) {
-            logger.error("Failed to send JSON response", e);
+            logger.error("❌ Failed to send JSON response - type={}", type, e);
         }
     }
 
@@ -166,7 +177,11 @@ public class ResponseUtil {
                 info.put("user_id", userInfo.getUserId());  // 使用下划线命名
                 info.put("username", userInfo.getUsername());
                 info.put("nickname", userInfo.getNickname());
+                info.put("avatar", userInfo.getAvatar());
                 info.put("rating", userInfo.getRating());
+                info.put("level", userInfo.getLevel());
+                info.put("exp", userInfo.getExp());
+                info.put("online", userInfo.getOnline());
                 result.put("user_info", info);  // 使用下划线命名
             }
             return result;

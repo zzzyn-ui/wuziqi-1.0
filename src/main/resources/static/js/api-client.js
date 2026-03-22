@@ -9,11 +9,26 @@ class ApiClient {
     /**
      * API基础URL
      * 自动根据当前页面地址生成
+     * - localhost/127.0.0.1: 使用8083端口
+     * - ngrok: 使用当前域名和端口
+     * - 其他: 使用当前页面端口
      */
     get baseUrl() {
         const protocol = window.location.protocol;
-        const host = window.location.host;
-        return `${protocol}//${host}/api`;
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+        const isNgrok = hostname.includes('ngrok') || hostname.includes('ngrok-free') || hostname.includes('ngrok.io');
+
+        let port;
+        if (isLocalhost && !window.location.port) {
+            port = '8083';
+        } else if (isNgrok) {
+            port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+        } else {
+            port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+        }
+
+        return `${protocol}//${hostname}${port ? ':' + port : ''}/api`;
     }
 
     /**
@@ -27,6 +42,7 @@ class ApiClient {
      * 通用请求方法
      */
     async request(endpoint, options = {}) {
+        // 统一使用8083端口的API
         const url = `${this.baseUrl}${endpoint}`;
         const token = this.getAuthToken();
 
@@ -202,8 +218,6 @@ class ApiClient {
      * 处理API错误
      */
     handleError(error, showMessage = true) {
-        console.error('API Error:', error);
-
         if (showMessage) {
             const message = error.message || '操作失败，请稍后重试';
             // 可以替换为项目中的提示组件

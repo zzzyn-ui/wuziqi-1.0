@@ -43,10 +43,10 @@ public enum MessageType {
     GAME_UNDO_NOTIFY(28),
 
     // 观战相关
-    OBSERVER_LIST(30),
-    OBSERVER_JOIN(31),
-    OBSERVER_LEAVE(32),
-    OBSERVER_COUNT(33),
+    OBSERVER_LIST(35),
+    OBSERVER_JOIN(36),
+    OBSERVER_LEAVE(37),
+    OBSERVER_COUNT(38),
 
     // 聊天相关
     CHAT_SEND(40),
@@ -61,13 +61,22 @@ public enum MessageType {
     FRIEND_LIST(54),
     FRIEND_ONLINE(55),
     FRIEND_OFFLINE(56),
+    FRIEND_REMARK(57),      // 设置好友备注
+    FRIEND_GROUP_CREATE(58),  // 创建好友分组
+    FRIEND_GROUP_LIST(59),  // 获取分组列表
+    FRIEND_MOVE_GROUP(60),  // 移动好友到分组
 
     // 用户相关
-    USER_INFO(60),
-    USER_STATS(61),
+    USER_INFO(61),
+    USER_STATS(62),
     GAME_REPLAY_REQUEST(70),
     GAME_REPLAY_DATA(71),
-    GAME_HISTORY_REQUEST(72);
+    GAME_HISTORY_REQUEST(72),
+
+    // 再来一局相关
+    GAME_REMATCH_REQUEST(80),
+    GAME_REMATCH_RESPONSE(81),
+    GAME_REMATCH_START(82);
 
     private final int value;
 

@@ -456,68 +456,29 @@
             <div class="room-card">
                 <div class="room-label">房间号</div>
                 <div class="room-id-display" id="roomId">------</div>
-
-                <div class="copy-box">
-                    <div class="room-url" id="roomUrl">https://game.com/join/------</div>
-                    <button class="copy-btn" onclick="copyLink()">复制链接</button>
-                </div>
-
-                <div class="qr-section">
-                    <div class="room-label">扫码加入</div>
-                    <div class="qr-placeholder" id="qrCode">
-                        <div style="text-align: center;">
-                            <div style="font-size: 48px;">📱</div>
-                            <div style="font-size: 12px;">二维码</div>
-                        </div>
-                    </div>
-                </div>
+                <div class="room-hint">等待好友加入房间...</div>
             </div>
 
-            <div class="player-status">
-                <div class="player-slot filled">
-                    <div class="player-avatar" id="hostAvatar">?</div>
-                    <div class="player-name" id="hostName">房主</div>
-                    <div class="player-role">执黑先行</div>
-                </div>
-                <div class="player-slot empty" id="guestSlot">
-                    <div class="player-avatar">?</div>
-                    <div class="player-name">等待加入</div>
-                    <div class="player-role">执白后手</div>
-                </div>
-            </div>
-
-            <div class="waiting-animation">
-                <div class="dots">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-                <div class="waiting-text">等待好友加入房间...</div>
+            <!-- 调试信息 -->
+            <div style="margin-top: 20px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; font-size: 12px; font-family: monospace; color: #666;">
+                <div>连接状态: <span id="wsStatus">未连接</span></div>
+                <div>最后消息: <span id="lastMessage">-</span></div>
             </div>
 
             <div style="margin-top: 24px;">
-                <button class="btn btn-primary" id="startBtn" onclick="startGame()">开始本地对战</button>
-                <button class="btn btn-secondary" onclick="shareRoom()">分享给好友</button>
-                <button class="btn btn-danger" onclick="cancelRoom()">取消房间</button>
+                <button class="btn btn-danger" onclick="cancelRoom()" style="width: 100%; padding: 16px; font-size: 16px;">取消房间</button>
             </div>
         </div>
     </div>
 
-    <!-- 好友加入弹窗 -->
+    <!-- 加入房间模态框 -->
     <div class="modal" id="joinModal">
         <div class="modal-content">
-            <div class="modal-icon">🎉</div>
-            <div class="modal-title">好友加入了！</div>
-            <div class="modal-text" id="joinPlayerName">好友</div>
-            <div class="modal-buttons">
-                <button class="modal-btn secondary" onclick="closeJoinModal()">稍等片刻</button>
-                <button class="modal-btn primary" onclick="startGame()">立即开始</button>
-            </div>
+            <div class="modal-icon">🎮</div>
+            <div class="modal-title">好友已加入</div>
+            <div class="modal-text">正在进入游戏...</div>
         </div>
     </div>
-
-    <!-- Toast提示 -->
-    <div class="toast" id="toast">已复制到剪贴板</div>
 
     <script>
         let ws = null;
@@ -528,74 +489,75 @@
 
         const MessageType = {
             UNKNOWN: 0,
-            CREATE_ROOM: 15,
-            JOIN_ROOM: 16,
-            ROOM_JOINED: 17,
-            ROOM_PLAYER_LEFT: 18,
-            GAME_STATE: 22
+            CREATE_ROOM: 16,
+            JOIN_ROOM: 17,
+            ROOM_JOINED: 20,
+            ROOM_PLAYER_LEFT: 29,
+            GAME_STATE: 32
         };
 
         // 初始化
         function init() {
-            // 获取用户信息
-            const userStr = localStorage.getItem('currentUser');
-            if (!userStr) {
+            // 获取用户信息 - 使用 authToken 代替 currentUser
+            const token = localStorage.getItem('authToken');
+            if (!token) {
                 alert('请先登录');
                 window.location.href = 'login.html';
                 return;
             }
-            currentUser = JSON.parse(userStr);
 
-            // 更新房主信息
-            document.getElementById('hostName').textContent = currentUser.nickname || '房主';
-            document.getElementById('hostAvatar').textContent = (currentUser.nickname || '?').charAt(0).toUpperCase();
+            // 创建一个简单的用户对象
+            currentUser = { nickname: '玩家' };
 
-            // 生成房间号
-            roomId = generateRoomId();
-            document.getElementById('roomId').textContent = roomId;
-
-            // 获取服务器IP地址用于生成完整URL
-            const serverHost = window.location.hostname || 'localhost';
-            const serverPort = window.location.port || '9090';
-            document.getElementById('roomUrl').textContent = `http://${serverHost}:${serverPort}/join.html?room=${roomId}`;
-
-            // 显示玩家积分
-            if (currentUser.rating) {
-                const hostSlot = document.querySelector('.player-slot.filled');
-                const ratingDiv = document.createElement('div');
-                ratingDiv.style.cssText = 'font-size: 12px; color: #999; margin-top: 4px;';
-                ratingDiv.textContent = `积分: ${currentUser.rating}`;
-                hostSlot.appendChild(ratingDiv);
-            }
+            // 房间号初始显示为六个横杠，等待服务器分配
+            document.getElementById('roomId').textContent = '------';
 
             // 连接WebSocket并创建房间
             connect();
         }
 
         function generateRoomId() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            // 只生成6位随机数字
             let result = '';
             for (let i = 0; i < 6; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
+                result += Math.floor(Math.random() * 10).toString();
             }
             return result;
         }
 
         function connect() {
-            // 动态获取WebSocket地址 - 根据当前页面地址
+            // 动态获取WebSocket地址 - 支持本地开发和ngrok穿透
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const hostname = window.location.hostname;
-            const wsPort = '8083';
-            const wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+            let wsUrl;
+            if (isLocalhost) {
+                wsUrl = `${protocol}//${hostname}:8083/ws`;
+            } else {
+                wsUrl = `${protocol}//${window.location.host}/ws`;
+            }
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
                 console.log('WebSocket connected');
-                // 创建房间
-                sendMessage(MessageType.CREATE_ROOM, {
-                    room_id: roomId,
-                    user_info: currentUser
-                });
+                document.getElementById('wsStatus').textContent = '已连接';
+                document.getElementById('wsStatus').style.color = '#28a745';
+
+                // 先发送认证消息
+                const token = localStorage.getItem('authToken');
+                console.log('Token found:', token ? 'Yes' : 'No');
+
+                if (token) {
+                    sendMessage(100, { token: token }); // TOKEN_AUTH
+                    console.log('Auth message sent');
+                }
+                // 然后创建房间
+                setTimeout(() => {
+                    sendMessage(MessageType.CREATE_ROOM, {
+                        user_info: currentUser
+                    });
+                    console.log('CREATE_ROOM message sent');
+                }, 300);
             };
 
             ws.onmessage = (event) => {
@@ -609,15 +571,17 @@
             };
 
             ws.onclose = () => {
-                if (!opponentJoined) {
-                    console.log('Disconnected');
-                    // 显示重连提示
-                    showToast('连接断开，请刷新页面');
-                }
+                console.log('WebSocket disconnected');
+                document.getElementById('wsStatus').textContent = '已断开';
+                document.getElementById('wsStatus').style.color = '#dc3545';
+                // 不再显示 alert，因为跳转时会正常断开
             };
 
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
+                document.getElementById('wsStatus').textContent = '错误';
+                document.getElementById('wsStatus').style.color = '#dc3545';
+                document.getElementById('lastMessage').textContent = 'WebSocket错误';
             };
         }
 
@@ -642,97 +606,62 @@
         }
 
         function handleMessage(msg) {
-            console.log('Handling message type:', msg.type);
+            console.log('=== handleMessage ===');
+            console.log('Full message:', JSON.stringify(msg));
+            console.log('Message type:', msg.type);
+            console.log('Message body:', msg.body);
+
+            // 更新调试信息
+            const lastMsgEl = document.getElementById('lastMessage');
+            if (lastMsgEl) {
+                lastMsgEl.textContent = `type=${msg.type}`;
+            }
 
             switch (msg.type) {
                 case MessageType.CREATE_ROOM:
-                    // 创建房间成功
-                    console.log('CREATE_ROOM response:', msg);
+                    // 创建房间成功，更新房间号
+                    console.log('CREATE_ROOM response received');
+                    console.log('msg.body:', msg.body);
+                    console.log('msg.body.success:', msg.body?.success);
+                    console.log('msg.body.room_id:', msg.body?.room_id);
+
                     if (msg.body && msg.body.success) {
-                        console.log('Room created:', msg.body.room_id);
+                        console.log('Room created successfully:', msg.body.room_id);
                         roomId = msg.body.room_id;
-                        document.getElementById('roomId').textContent = roomId;
+                        console.log('Setting roomId to:', roomId);
+                        const roomIdElement = document.getElementById('roomId');
+                        console.log('roomId element:', roomIdElement);
+                        if (roomIdElement) {
+                            roomIdElement.textContent = roomId;
+                            console.log('Room ID updated in DOM to:', roomId);
+                            lastMsgEl.textContent = `房间号: ${roomId}`;
+                        }
+                    } else {
+                        console.error('Create room failed:', msg.body?.message);
+                        lastMsgEl.textContent = `创建失败: ${msg.body?.message || '未知错误'}`;
                     }
-                    break;
-                case MessageType.ROOM_JOINED:
-                    handlePlayerJoined(msg);
                     break;
                 case MessageType.GAME_STATE:
-                    // 收到游戏状态，直接跳转到游戏页面
+                    // 收到游戏状态，显示模态框然后跳转
                     console.log('Game state received, redirecting to game...');
-                    if (msg.room_id) {
-                        window.location.href = `game.html?room=${msg.room_id}&my_color=${msg.my_color || 1}`;
+                    if (msg.body && msg.body.room_id) {
+                        opponentJoined = true;  // 标记为已加入，避免断开时显示 alert
+                        // 显示模态框
+                        document.getElementById('joinModal').classList.add('show');
+                        // 延迟跳转，让用户看到提示
+                        setTimeout(() => {
+                            window.location.href = `game.html?room=${msg.body.room_id}&my_color=${msg.body.my_color || 1}`;
+                        }, 1000);
                     }
+                    break;
+                case 100: // TOKEN_AUTH 响应
+                    console.log('Auth response:', msg.body);
+                    lastMsgEl.textContent = `认证: ${msg.body?.success ? '成功' : '失败'}`;
                     break;
                 default:
                     console.log('Unhandled message type:', msg.type, 'Message:', msg);
+                    lastMsgEl.textContent = `未知消息: type=${msg.type}`;
             }
-        }
-
-        function handlePlayerJoined(msg) {
-            console.log('Player joined:', msg);
-            const player = msg.player || {};
-            opponentJoined = true;
-
-            // 更新对手信息
-            const guestSlot = document.getElementById('guestSlot');
-            guestSlot.classList.remove('empty');
-            guestSlot.classList.add('filled');
-            guestSlot.querySelector('.player-avatar').textContent = (player.nickname || '?').charAt(0).toUpperCase();
-            guestSlot.querySelector('.player-name').textContent = player.nickname || '好友';
-
-            // 显示提示
-            showToast(`${player.nickname || '好友'} 已加入，游戏即将开始...`);
-
-            // 游戏自动开始，等待服务器发送游戏状态
-            setTimeout(() => {
-                // 如果2秒后还没收到游戏状态，提示手动点击
-                if (!document.hidden) {
-                    document.getElementById('startBtn').disabled = false;
-                }
-            }, 2000);
-        }
-
-        function closeJoinModal() {
-            document.getElementById('joinModal').classList.remove('show');
-        }
-
-        function copyLink() {
-            const url = document.getElementById('roomUrl').textContent;
-            navigator.clipboard.writeText(url).then(() => {
-                showToast('链接已复制到剪贴板');
-            }).catch(() => {
-                // 降级方案
-                const input = document.createElement('input');
-                input.value = url;
-                document.body.appendChild(input);
-                input.select();
-                document.execCommand('copy');
-                document.body.removeChild(input);
-                showToast('链接已复制到剪贴板');
-            });
-        }
-
-        function shareRoom() {
-            if (navigator.share) {
-                navigator.share({
-                    title: '五子棋对战',
-                    text: `${currentUser.nickname || '我'} 邀请你来下五子棋！`,
-                    url: document.getElementById('roomUrl').textContent
-                }).catch(() => {
-                    copyLink();
-                });
-            } else {
-                copyLink();
-            }
-        }
-
-        function startGame() {
-            closeJoinModal();
-
-            // 在线房间对战：跳转到游戏页面，通过WebSocket同步
-            // 房主执黑棋先手
-            window.location.href = 'game.html?room=' + roomId + '&my_color=1';
         }
 
         function cancelRoom() {
@@ -751,15 +680,6 @@
                 }
                 window.location.href = 'index.html';
             }
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2000);
         }
 
         // 页面卸载时清理

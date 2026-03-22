@@ -22,6 +22,155 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 粒子背景画布 */
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 左右对称动画区 */
+        .side-decoration {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 150px;
+            height: 400px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .side-decoration.left {
+            left: 5%;
+        }
+
+        .side-decoration.right {
+            right: 5%;
+        }
+
+        .decoration-item {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 149, 0, 0.3), rgba(255, 179, 71, 0.1));
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .decoration-item:nth-child(1) {
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            animation-delay: 0s;
+        }
+
+        .decoration-item:nth-child(2) {
+            top: 35%;
+            left: 30%;
+            width: 40px;
+            height: 40px;
+            animation-delay: 0.5s;
+        }
+
+        .decoration-item:nth-child(3) {
+            top: 60%;
+            left: 70%;
+            width: 80px;
+            height: 80px;
+            animation-delay: 1s;
+        }
+
+        .decoration-item:nth-child(4) {
+            top: 85%;
+            left: 40%;
+            width: 50px;
+            height: 50px;
+            animation-delay: 1.5s;
+        }
+
+        .side-decoration.right .decoration-item {
+            left: auto;
+            right: 0;
+            transform: translateX(50%);
+        }
+
+        .side-decoration.right .decoration-item:nth-child(2) {
+            right: 30%;
+            left: auto;
+        }
+
+        .side-decoration.right .decoration-item:nth-child(3) {
+            right: 70%;
+            left: auto;
+        }
+
+        .side-decoration.right .decoration-item:nth-child(4) {
+            right: 40%;
+            left: auto;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateX(-50%) translateY(0) scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: translateX(-50%) translateY(-20px) scale(1.1);
+                opacity: 1;
+            }
+        }
+
+        .side-decoration.right .decoration-item {
+            animation-name: floatRight;
+        }
+
+        @keyframes floatRight {
+            0%, 100% {
+                transform: translateX(50%) translateY(0) scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: translateX(50%) translateY(-20px) scale(1.1);
+                opacity: 1;
+            }
+        }
+
+        /* 装饰线条 */
+        .decoration-line {
+            position: absolute;
+            width: 2px;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, rgba(255, 149, 0, 0.5), transparent);
+            animation: linePulse 3s ease-in-out infinite;
+        }
+
+        .side-decoration.left .decoration-line {
+            left: 50%;
+            top: 0;
+        }
+
+        .side-decoration.right .decoration-line {
+            right: 50%;
+            bottom: 0;
+        }
+
+        @keyframes linePulse {
+            0%, 100% {
+                opacity: 0.3;
+                height: 100px;
+            }
+            50% {
+                opacity: 0.8;
+                height: 150px;
+            }
         }
 
         .container {
@@ -32,7 +181,9 @@
             max-width: 420px;
             width: 100%;
             position: relative;
+            z-index: 2;
             overflow: hidden;
+            animation: containerFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .container::before {
@@ -51,39 +202,60 @@
         }
 
         .logo-icon {
-            width: 72px;
-            height: 72px;
+            width: 80px;
+            height: 80px;
             margin: 0 auto 16px;
-            background: linear-gradient(135deg, #ff9500, #ffb347);
-            border-radius: 20px;
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            border-radius: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 8px 24px rgba(255, 149, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.4);
+            animation: logoFloat 3s ease-in-out infinite;
+            position: relative;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 24px;
+            background: inherit;
+            filter: blur(15px);
+            opacity: 0.5;
+            z-index: -1;
         }
 
         .logo-icon svg {
-            width: 42px;
-            height: 42px;
+            width: 48px;
+            height: 48px;
             fill: white;
         }
 
         h1 {
-            font-size: 28px;
+            font-size: 32px;
             color: #333;
             margin-bottom: 8px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .subtitle {
-            color: #999;
-            font-size: 14px;
+            color: #ff6b35;
+            font-size: 16px;
             text-align: center;
+            font-weight: 500;
+            letter-spacing: 1px;
         }
 
         .tabs {
             display: flex;
             margin-bottom: 28px;
-            background: #f5f5f5;
+            background: #fff5e6;
             border-radius: 12px;
             padding: 4px;
         }
@@ -103,13 +275,13 @@
         }
 
         .tab:hover {
-            color: #ff9500;
+            color: #ff6b35;
         }
 
         .tab.active {
             background: white;
-            color: #ff9500;
-            box-shadow: 0 2px 8px rgba(255, 149, 0, 0.15);
+            color: #ff6b35;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.15);
         }
 
         .form-group {
@@ -135,6 +307,7 @@
             transform: translateY(-50%);
             color: #ccc;
             font-size: 18px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         input {
@@ -149,9 +322,14 @@
 
         input:focus {
             outline: none;
-            border-color: #ff9500;
+            border-color: #ff6b35;
             background: white;
-            box-shadow: 0 0 0 4px rgba(255, 149, 0, 0.1);
+            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+        }
+
+        input:focus + .input-icon {
+            color: #ff6b35;
+            transform: translateY(-50%) scale(1.1);
         }
 
         input::placeholder {
@@ -161,7 +339,7 @@
         button.primary-btn {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #ff9500, #ff8c00);
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
             color: white;
             border: none;
             border-radius: 12px;
@@ -169,12 +347,12 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 16px rgba(255, 149, 0, 0.3);
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
         }
 
         button.primary-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(255, 149, 0, 0.4);
+            box-shadow: 0 6px 24px rgba(255, 107, 53, 0.4);
         }
 
         button.primary-btn:active {
@@ -265,14 +443,14 @@
         }
 
         .footer-links a {
-            color: #ff9500;
+            color: #ff6b35;
             text-decoration: none;
             margin: 0 8px;
             transition: color 0.3s;
         }
 
         .footer-links a:hover {
-            color: #ff8c00;
+            color: #ff8c61;
         }
 
         .loading {
@@ -292,8 +470,8 @@
         }
 
         .guest-login {
-            background: #f5f5f5;
-            color: #666;
+            background: #fff5e6;
+            color: #ff6b35;
             border: none;
             padding: 12px;
             width: 100%;
@@ -301,17 +479,46 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-weight: 500;
         }
 
         .guest-login:hover {
-            background: #eee;
-            color: #333;
+            background: #ffe8cc;
+            color: #ff8c61;
+        }
+
+        /* 动画效果 */
+        @keyframes containerFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes logoFloat {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-10px) rotate(5deg);
+            }
+            75% {
+                transform: translateY(-5px) rotate(-5deg);
+            }
         }
 
         /* 响应式设计 */
         @media (max-width: 768px) {
             body {
                 padding: 10px;
+            }
+
+            .side-decoration {
+                display: none;
             }
 
             .container {
@@ -334,7 +541,7 @@
             }
 
             .subtitle {
-                font-size: 13px;
+                font-size: 14px;
             }
 
             .tab {
@@ -378,7 +585,7 @@
             }
 
             .subtitle {
-                font-size: 12px;
+                font-size: 13px;
             }
 
             .logo {
@@ -417,23 +624,95 @@
                 font-size: 12px;
             }
         }
+
+        /* 密码强度指示器 */
+        .password-strength {
+            margin-top: 8px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .password-strength.show {
+            display: block;
+        }
+
+        .strength-bar {
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+            width: 0%;
+        }
+
+        .strength-1 .strength-fill { width: 25%; background: #ff4444; }
+        .strength-2 .strength-fill { width: 50%; background: #ffaa00; }
+        .strength-3 .strength-fill { width: 75%; background: #ffcc00; }
+        .strength-4 .strength-fill { width: 100%; background: #00cc00; }
+
+        .strength-text {
+            margin-top: 4px;
+            font-size: 12px;
+        }
+
+        .strength-1 .strength-text { color: #ff4444; }
+        .strength-2 .strength-text { color: #ffaa00; }
+        .strength-3 .strength-text { color: #ffcc00; }
+        .strength-4 .strength-text { color: #00cc00; }
     </style>
 </head>
 <body>
+    <!-- 粒子背景画布 -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- 左侧装饰区 -->
+    <div class="side-decoration left">
+        <div class="decoration-item"></div>
+        <div class="decoration-item"></div>
+        <div class="decoration-item"></div>
+        <div class="decoration-item"></div>
+        <div class="decoration-line"></div>
+    </div>
+
+    <!-- 右侧装饰区 -->
+    <div class="side-decoration right">
+        <div class="decoration-item"></div>
+        <div class="decoration-item"></div>
+        <div class="decoration-item"></div>
+        <div class="decoration-item"></div>
+        <div class="decoration-line"></div>
+    </div>
+
     <div class="container">
         <div class="logo">
             <div class="logo-icon">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" fill="none" stroke="white" stroke-width="2"/>
-                    <circle cx="9" cy="9" r="1.5" fill="white"/>
-                    <circle cx="15" cy="9" r="1.5" fill="white"/>
-                    <circle cx="9" cy="15" r="1.5" fill="white"/>
-                    <circle cx="12" cy="12" r="1.5" fill="white"/>
-                    <circle cx="15" cy="15" r="1.5" fill="white"/>
+                    <!-- 棋盘网格 -->
+                    <g fill="none" stroke="white" stroke-width="1.5">
+                        <line x1="4" y1="4" x2="20" y2="4"/>
+                        <line x1="4" y1="8" x2="20" y2="8"/>
+                        <line x1="4" y1="12" x2="20" y2="12"/>
+                        <line x1="4" y1="16" x2="20" y2="16"/>
+                        <line x1="4" y1="20" x2="20" y2="20"/>
+                        <line x1="4" y1="4" x2="4" y2="20"/>
+                        <line x1="8" y1="4" x2="8" y2="20"/>
+                        <line x1="12" y1="4" x2="12" y2="20"/>
+                        <line x1="16" y1="4" x2="16" y2="20"/>
+                        <line x1="20" y1="4" x2="20" y2="20"/>
+                    </g>
+                    <!-- 棋子 -->
+                    <circle cx="8" cy="8" r="2" fill="white"/>
+                    <circle cx="12" cy="12" r="2" fill="white"/>
+                    <circle cx="16" cy="16" r="2" fill="white"/>
                 </svg>
             </div>
             <h1>五子棋在线对战</h1>
-            <p class="subtitle">与全球玩家实时对弈</p>
+            <p class="subtitle">五子棋对弈，有胆你就来</p>
             <p class="server-status" id="serverStatus" style="font-size: 12px; color: #999; margin-top: 8px;">检查服务器状态中...</p>
         </div>
 
@@ -489,8 +768,9 @@
                 <label>密码</label>
                 <div class="input-wrapper">
                     <span class="input-icon">🔒</span>
-                    <input type="password" id="regPassword" placeholder="至少6位" maxlength="32">
+                    <input type="password" id="regPassword" placeholder="至少6位，建议包含大小写字母、数字" maxlength="32" oninput="checkPasswordStrength()">
                 </div>
+                <div id="passwordStrength" class="password-strength"></div>
             </div>
             <div class="form-group">
                 <label>确认密码</label>
@@ -510,10 +790,86 @@
     </div>
 
     <script>
+        // ==================== 粒子背景动画 ====================
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 8 + 3;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5 - 0.3;
+                this.opacity = Math.random() * 0.5 + 0.2;
+                this.color = `rgba(255, ${Math.floor(Math.random() * 100 + 100)}, ${Math.floor(Math.random() * 50 + 50)}, ${this.opacity})`;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.opacity -= 0.002;
+
+                if (this.opacity <= 0 || this.y < -20 || this.y > canvas.height + 20) {
+                    this.reset();
+                    this.y = canvas.height + 20;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color.replace(/[^,]+(?=\))/, this.opacity);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const particleCount = Math.floor((canvas.width * canvas.height) / 15000);
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initParticles();
+        });
+
+        resizeCanvas();
+        initParticles();
+        animateParticles();
+        // ==================== 粒子背景动画结束 ====================
+
+        // ==================== 原有登录逻辑 ====================
         let ws = null;
         let sequenceId = 0;
         let authToken = null;
         let currentUser = null;
+        let heartbeatInterval = null;
+        let reconnectTimeout = null;
+        let isManualClose = false;
 
         const MessageType = {
             UNKNOWN: 0,
@@ -559,23 +915,29 @@
 
         function connect() {
             return new Promise((resolve, reject) => {
-                // 如果已有连接，直接返回
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     console.log('✓ WebSocket 已连接');
                     resolve();
                     return;
                 }
 
-                // 关闭旧连接
                 if (ws) {
                     ws.close();
                 }
 
-                // 动态获取WebSocket地址 - 根据当前页面地址
+                // 清除旧的心跳和重连定时器
+                if (heartbeatInterval) clearInterval(heartbeatInterval);
+                if (reconnectTimeout) clearTimeout(reconnectTimeout);
+
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const hostname = window.location.hostname;
-            const wsPort = '8083';
-                const wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+                const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+                let wsUrl;
+                if (isLocalhost) {
+                    wsUrl = `${protocol}//${hostname}:8083/ws`;
+                } else {
+                    wsUrl = `${protocol}//${window.location.host}/ws`;
+                }
                 console.log('正在连接 WebSocket:', wsUrl);
 
                 try {
@@ -584,7 +946,16 @@
                     ws.onopen = () => {
                         console.log('✓ WebSocket 连接成功');
                         document.getElementById('serverStatus').innerHTML =
-                            document.getElementById('serverStatus').innerHTML.replace('在线', '在线 (已连接)');
+                            '<span style="color: #4caf50;">● 在线 (已连接)</span>';
+
+                        // 启动心跳：每30秒发送一次ping
+                        heartbeatInterval = setInterval(() => {
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+                                console.log('发送心跳 ping');
+                            }
+                        }, 30000);
+
                         resolve();
                     };
 
@@ -594,8 +965,11 @@
                             console.log('收到消息:', msg);
                             handleMessage(msg);
                         } catch (e) {
-                            console.error('消息解析错误:', e);
-                            console.log('原始消息:', event.data);
+                            // 忽略ping/pong等非JSON消息
+                            if (event.data !== 'pong' && event.data !== 'ping') {
+                                console.error('消息解析错误:', e);
+                                console.log('原始消息:', event.data);
+                            }
                         }
                     };
 
@@ -603,6 +977,21 @@
                         console.log('WebSocket 连接关闭, code:', event.code, 'reason:', event.reason || '无');
                         document.getElementById('serverStatus').innerHTML =
                             '<span style="color: #ff9800;">● 连接已断开</span>';
+
+                        // 清除心跳
+                        if (heartbeatInterval) {
+                            clearInterval(heartbeatInterval);
+                            heartbeatInterval = null;
+                        }
+
+                        // 自动重连（如果不是手动关闭）
+                        if (!isManualClose) {
+                            console.log('3秒后尝试重连...');
+                            reconnectTimeout = setTimeout(() => {
+                                console.log('正在重连...');
+                                connect().catch(err => console.error('重连失败:', err));
+                            }, 3000);
+                        }
                     };
 
                     ws.onerror = (error) => {
@@ -612,7 +1001,6 @@
                         reject(new Error('WebSocket 连接失败'));
                     };
 
-                    // 设置超时
                     setTimeout(() => {
                         if (ws.readyState !== WebSocket.OPEN) {
                             reject(new Error('连接超时（5秒）'));
@@ -676,7 +1064,6 @@
                 console.log('=== 开始登录流程 ===');
                 console.log('用户名:', username);
 
-                // 确保WebSocket已连接
                 if (!ws || ws.readyState !== WebSocket.OPEN) {
                     console.log('WebSocket 未连接，正在连接...');
                     await connect();
@@ -692,7 +1079,6 @@
 
                 if (success) {
                     console.log('✓ 登录请求已发送');
-                    // 等待响应（在 handleAuthResponse 中处理）
                 } else {
                     throw new Error('发送登录请求失败');
                 }
@@ -703,6 +1089,52 @@
                 btn.disabled = false;
                 btn.textContent = '登录';
             }
+        }
+
+        // 检查密码强度
+        function checkPasswordStrength() {
+            const password = document.getElementById('regPassword').value;
+            const strengthDiv = document.getElementById('passwordStrength');
+
+            if (!password) {
+                strengthDiv.classList.remove('show');
+                return;
+            }
+
+            strengthDiv.classList.add('show');
+
+            // 计算密码强度
+            let score = 0;
+
+            // 长度
+            if (password.length >= 6) score++;
+            if (password.length >= 8) score++;
+            if (password.length >= 12) score++;
+
+            // 包含小写字母
+            if (/[a-z]/.test(password)) score++;
+
+            // 包含大写字母
+            if (/[A-Z]/.test(password)) score++;
+
+            // 包含数字
+            if (/\d/.test(password)) score++;
+
+            // 包含特殊字符
+            if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password)) score++;
+
+            // 更新显示
+            const strengthClass = Math.min(score, 4);
+            const strengthTexts = ['', '弱', '一般', '中等', '强'];
+            const strengthColors = ['', '#ff4444', '#ffaa00', '#ffcc00', '#00cc00'];
+
+            strengthDiv.className = 'password-strength show strength-' + strengthClass;
+            strengthDiv.innerHTML = `
+                <div class="strength-bar">
+                    <div class="strength-fill"></div>
+                </div>
+                <div class="strength-text">${strengthTexts[strengthClass]}</div>
+            `;
         }
 
         async function register() {
@@ -740,12 +1172,16 @@
                 return;
             }
 
+            // 检查密码强度（仅警告，不阻止注册）
+            if (password.length < 8 || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+                console.log('提示：建议使用更复杂的密码（包含大小写字母、数字和特殊字符）');
+            }
+
             const btn = document.getElementById('registerBtn');
             btn.disabled = true;
             btn.innerHTML = '<span class="loading"></span>连接中...';
 
             try {
-                // 确保WebSocket已连接
                 if (!ws || ws.readyState !== WebSocket.OPEN) {
                     await connect();
                 }
@@ -767,7 +1203,6 @@
         }
 
         function guestLogin() {
-            // 游客模式 - 生成随机用户（使用数字ID）
             const guestId = -(Math.floor(Math.random() * 1000000) + 1000000);
             const guestUser = {
                 user_id: guestId,
@@ -802,7 +1237,6 @@
                 console.log('用户信息:', currentUser);
                 console.log('Token 长度:', authToken ? authToken.length : 0);
 
-                // 确保user_id是数字类型
                 if (currentUser && currentUser.user_id) {
                     currentUser.user_id = parseInt(currentUser.user_id);
                 }
@@ -816,8 +1250,8 @@
                     currentUser.exp = parseInt(currentUser.exp);
                 }
 
-                // 保存到本地存储
                 localStorage.setItem('authToken', authToken);
+                localStorage.setItem('token', authToken);  // 同时存储 token，供其他页面使用
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
                 console.log('✓ 用户信息已保存到 localStorage');
@@ -836,7 +1270,6 @@
 
         function showMessage(text, type = 'info') {
             const area = document.getElementById('messageArea');
-            // 安全地设置文本内容，防止XSS攻击
             area.innerHTML = '';
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${type} show`;
@@ -860,12 +1293,11 @@
             showMessage('五子棋在线对战 v1.0', 'info');
         }
 
-        // 检查服务器状态
         async function checkServerStatus() {
             try {
                 const protocol = window.location.protocol;
                 const hostname = window.location.hostname;
-                const apiPort = '9090';
+                const apiPort = '8083';
                 const response = await fetch(`${protocol}//${hostname}:${apiPort}/api/health`);
 
                 if (response.ok) {
@@ -886,7 +1318,6 @@
             }
         }
 
-        // 回车键提交
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 const loginForm = document.getElementById('loginForm');
@@ -898,9 +1329,7 @@
             }
         });
 
-        // 页面加载时检查登录状态
         window.onload = async function() {
-            // 忽略浏览器扩展的错误
             window.addEventListener('error', function(e) {
                 if (e.message && e.message.includes('Could not establish connection')) {
                     e.preventDefault();
@@ -909,7 +1338,6 @@
 
             checkLogin();
 
-            // 检查服务器状态
             console.log('=== 五子棋登录页面 ===');
             console.log('当前URL:', window.location.href);
             console.log('检查服务器状态...');
@@ -922,12 +1350,10 @@
                     console.log('  数据库状态:', status.data.database);
                     console.log('  在线用户:', status.data.online_users || 0);
 
-                    // 更新服务器状态显示
                     document.getElementById('serverStatus').innerHTML =
                         '<span style="color: #4caf50;">● 服务器在线</span> (' +
                         (status.data.online_users || 0) + ' 人在线)';
 
-                    // 服务器正常，预连接WebSocket
                     console.log('正在连接 WebSocket...');
                     connect().catch((error) => {
                         console.warn('WebSocket 连接失败:', error);
@@ -948,7 +1374,6 @@
             }
         };
 
-        // 页面卸载时关闭连接
         window.onbeforeunload = function() {
             if (ws) {
                 ws.close();

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>残局API测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 25px);
+            gap: 1px;
+            background: #DEB887;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .cell {
+            width: 25px;
+            height: 25px;
+            background: #DEB887;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .cell.black-piece::after {
+            content: '';
+            width: 18px;
+            height: 18px;
+            background: black;
+            border-radius: 50%;
+        }
+        .cell.white-piece::after {
+            content: '';
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>残局API测试</h1>
+
+        <div class="section">
+            <h3>1. 测试API连接</h3>
+            <button onclick="testApi()">测试API</button>
+            <pre id="apiResult">点击按钮测试API...</pre>
+        </div>
+
+        <div class="section">
+            <h3>2. 加载残局数据</h3>
+            <button onclick="loadPuzzles('easy')">加载Easy</button>
+            <button onclick="loadPuzzles('medium')">加载Medium</button>
+            <button onclick="loadPuzzles('hard')">加载Hard</button>
+            <button onclick="loadPuzzles('expert')">加载Expert</button>
+            <pre id="puzzleResult">等待加载...</pre>
+        </div>
+
+        <div class="section">
+            <h3>3. 棋盘显示</h3>
+            <button onclick="testBoard()">测试第一个残局</button>
+            <div id="boardDisplay" class="board"></div>
+        </div>
+    </div>
+
+    <script src="js/puzzle-api.js"></script>
+    <script>
+        async function testApi() {
+            const result = document.getElementById('apiResult');
+            result.textContent = '正在测试...';
+            try {
+                const available = await window.puzzleApi.checkApiAvailable();
+                result.textContent = `API可用: ${available}`;
+            } catch (error) {
+                result.textContent = `错误: ${error.message}`;
+            }
+        }
+
+        async function loadPuzzles(difficulty) {
+            const result = document.getElementById('puzzleResult');
+            result.textContent = '正在加载...';
+            try {
+                const data = await window.puzzleApi.getPuzzles(difficulty);
+                result.textContent = `成功加载 ${data.length} 个残局\n\n` +
+                    JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = `错误: ${error.message}`;
+            }
+        }
+
+        async function testBoard() {
+            try {
+                const data = await window.puzzleApi.getPuzzles('easy');
+                if (data && data.length > 0) {
+                    const puzzle = data[0];
+                    const boardState = puzzle.boardState;
+
+                    // 渲染棋盘
+                    const board = document.getElementById('boardDisplay');
+                    board.innerHTML = '';
+
+                    for (let i = 0; i < 15; i++) {
+                        for (let j = 0; j < 15; j++) {
+                            const cell = document.createElement('div');
+                            cell.className = 'cell';
+                            const char = boardState[i * 15 + j];
+
+                            if (char === 'B') {
+                                cell.classList.add('black-piece');
+                            } else if (char === 'W') {
+                                cell.classList.add('white-piece');
+                            }
+
+                            board.appendChild(cell);
+                        }
+                    }
+
+                    alert(`残局1: ${puzzle.title}\n黑子: ${boardState.split('B').length - 1}\n白子: ${boardState.split('W').length - 1}`);
+                }
+            } catch (error) {
+                alert('错误: ' + error.message);
+            }
+        }
+
+        // 自动测试
+        window.onload = async function() {
+            await testApi();
+            await testBoard();
+        };
+    </script>
+</body>
+</html>

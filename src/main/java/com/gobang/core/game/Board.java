@@ -114,6 +114,17 @@ public class Board {
     }
 
     /**
+     * 重置棋盘（清空所有棋子）
+     */
+    public void reset() {
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                cells[i][j] = EMPTY;
+            }
+        }
+    }
+
+    /**
      * 获取原始二维数组
      */
     public int[][] getCells() {

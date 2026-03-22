@@ -12,6 +12,8 @@ public class Friend {
     private Long friendId;
     private Integer status;
     private String requestMessage;
+    private String remark; // 好友备注
+    private Integer groupId; // 分组ID
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -79,6 +81,22 @@ public class Friend {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public Integer getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Integer groupId) {
+        this.groupId = groupId;
     }
 
     public boolean isPending() {

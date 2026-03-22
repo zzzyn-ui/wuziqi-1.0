@@ -879,10 +879,10 @@
                         <div style="background: #fff3cd; padding: 16px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: #856404; text-align: left;">
                             <strong>正确的访问方式：</strong><br>
                             ❌ file:///D:/wuziqi/src/main/resources/static/index.html<br>
-                            ✅ <strong style="color: #28a745;">http://localhost:9090/index.html</strong>
+                            ✅ <strong style="color: #28a745;">http://localhost:8083/index.html</strong>
                         </div>
                         <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
-                            <button onclick="window.location.href='http://localhost:9090/index.html'" style="background: linear-gradient(135deg, #ff6b35, #ff8c61); color: white; border: none; padding: 14px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                            <button onclick="window.location.href='http://localhost:8083/index.html'" style="background: linear-gradient(135deg, #ff6b35, #ff8c61); color: white; border: none; padding: 14px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;">
                                 前往服务器页面
                             </button>
                         </div>
@@ -1041,11 +1041,18 @@
             // WebSocket URL不包含token参数
             // Token将在连接后通过认证消息发送
             const authToken = localStorage.getItem('authToken');
-            // 动态获取WebSocket地址 - WebSocket 在 9090 端口
+            // 动态获取WebSocket地址 - 支持本地开发和ngrok穿透
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const hostname = window.location.hostname;
-            const wsPort = '8083'; // WebSocket 端口
-            let wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+            let wsUrl;
+            if (isLocalhost) {
+                // 本地开发使用8083端口
+                wsUrl = `${protocol}//${hostname}:8083/ws`;
+            } else {
+                // ngrok或其他域名使用当前页面的host（自动包含端口）
+                wsUrl = `${protocol}//${window.location.host}/ws`;
+            }
 
             console.log('WebSocket URL:', wsUrl);
             console.log('Will send token after connection:', !!authToken);
@@ -1559,8 +1566,8 @@
                 return;
             }
 
-            // 跳转到游戏页面，带上房间号
-            window.location.href = 'game.html?room=' + encodeURIComponent(roomId);
+            // 跳转到游戏页面，带上房间号和快速匹配标识
+            window.location.href = 'game.html?room=' + encodeURIComponent(roomId) + '&quick_match=true';
         }
 
         // 切换到休闲模式

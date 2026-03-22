@@ -10,6 +10,7 @@ import com.gobang.model.entity.User;
 import com.gobang.protocol.protobuf.GobangProto;
 import com.gobang.service.ChatService;
 import com.gobang.service.UserService;
+import com.gobang.util.ContentFilter;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,16 +27,19 @@ public class ChatHandler implements MessageHandler {
     private final UserService userService;
     private final RoomManager roomManager;
     private final RateLimitManager rateLimitManager;
+    private final com.gobang.core.social.FriendManager friendManager;
 
-    public ChatHandler(ChatService chatService, UserService userService, RoomManager roomManager, RateLimitManager rateLimitManager) {
+    public ChatHandler(ChatService chatService, UserService userService, RoomManager roomManager,
+                       RateLimitManager rateLimitManager, com.gobang.core.social.FriendManager friendManager) {
         this.chatService = chatService;
         this.userService = userService;
         this.roomManager = roomManager;
         this.rateLimitManager = rateLimitManager;
+        this.friendManager = friendManager;
     }
 
     public ChatHandler(ChatService chatService, UserService userService, RoomManager roomManager) {
-        this(chatService, userService, roomManager, null);
+        this(chatService, userService, roomManager, null, null);
     }
 
     @Override
@@ -113,11 +117,15 @@ public class ChatHandler implements MessageHandler {
     }
 
     /**
-     * 处理公屏聊天（大厅聊天）
+     * 处理房间内聊天
      */
     private void handlePublicChat(ChannelHandlerContext ctx, Long userId, User sender, String content) {
-        // 保存消息
-        chatService.sendPublicMessage(userId, "lobby", content);
+        // 获取用户所在的房间
+        com.gobang.core.room.GameRoom room = roomManager.getRoomByUserId(userId);
+        if (room == null) {
+            sendError(ctx, "您不在任何房间内");
+            return;
+        }
 
         // 构建聊天消息
         GobangProto.ChatReceive chatReceive = GobangProto.ChatReceive.newBuilder()
@@ -136,10 +144,10 @@ public class ChatHandler implements MessageHandler {
                 .setBody(chatReceive.toByteString())
                 .build();
 
-        // 发送给发送者（回显）- 使用JSON格式
-        ResponseUtil.sendResponse(ctx.channel(), packet, new ResponseUtil.ChatReceiveJsonBuilder(chatReceive));
+        // 发送给房间内的所有玩家和观战者
+        room.broadcast(packet);
 
-        logger.debug("Public chat from user {}: {}", userId, content);
+        logger.info("房间聊天 - 房间:{}, 玩家:{}, 内容:{}", room.getRoomId(), sender.getNickname(), content);
     }
 
     /**
@@ -170,15 +178,25 @@ public class ChatHandler implements MessageHandler {
 
             GobangProto.Packet packet = GobangProto.Packet.newBuilder()
                     .setType(GobangProto.MessageType.CHAT_RECEIVE)
+                    .setSequenceId(0)
                     .setTimestamp(System.currentTimeMillis())
                     .setBody(chatReceive.toByteString())
                     .build();
 
             // 发送给接收者
-            // 这里需要通过channelManager发送，暂时留空
-            // 如果接收者在线，发送消息；否则存为未读
+            boolean delivered = false;
+            if (friendManager != null) {
+                io.netty.channel.Channel targetChannel = friendManager.getChannel(targetId);
+                if (targetChannel != null && targetChannel.isActive()) {
+                    ResponseUtil.sendResponse(targetChannel, packet, new ResponseUtil.ChatReceiveJsonBuilder(chatReceive));
+                    delivered = true;
+                    logger.info("Private chat delivered from user {} to user {}: {}", userId, targetId, content);
+                }
+            }
 
-            logger.debug("Private chat from user {} to user {}: {}", userId, targetId, content);
+            if (!delivered) {
+                logger.info("User {} is offline, private message saved for later", targetId);
+            }
 
         } catch (NumberFormatException e) {
             sendError(ctx, "目标用户ID格式错误");
@@ -186,16 +204,11 @@ public class ChatHandler implements MessageHandler {
     }
 
     /**
-     * 内容过滤（简单敏感词过滤）
+     * 内容过滤（使用 ContentFilter 工具类）
      */
     private String filterContent(String content) {
-        // 简单实现，实际应使用更完善的过滤系统
-        String[] bannedWords = {"脏话", "辱骂"};
-        String result = content;
-        for (String word : bannedWords) {
-            result = result.replace(word, "***");
-        }
-        return result;
+        // 使用 ContentFilter 进行全面的内容过滤
+        return ContentFilter.filter(content);
     }
 
     /**

@@ -13,6 +13,7 @@ import com.gobang.service.RoomService;
 import com.gobang.service.UserService;
 import com.gobang.core.room.RoomManager;
 import com.gobang.core.social.ChatManager;
+import com.gobang.core.social.FriendManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
@@ -43,14 +44,14 @@ public class JsonMessageHandler {
 
     public JsonMessageHandler(AuthService authService, UserService userService,
                              GameService gameService, RoomService roomService, ChatService chatService,
-                             RoomManager roomManager, ChatManager chatManager) {
+                             RoomManager roomManager, ChatManager chatManager, FriendManager friendManager) {
         this.gameService = gameService;
         this.authService = authService;
         this.userService = userService;
         this.authHandler = new AuthHandler(authService, userService);
         this.matchHandler = new MatchHandler(gameService, userService, roomManager);
         this.gameHandler = new GameHandler(gameService, roomService, userService, roomManager);
-        this.chatHandler = new ChatHandler(chatService, userService, roomManager);
+        this.chatHandler = new ChatHandler(chatService, userService, roomManager, null, friendManager);
     }
 
     /**
@@ -86,11 +87,17 @@ public class JsonMessageHandler {
                 case 24: // GAME_RESIGN
                     handleResign(ctx, root);
                     break;
+                case 25: // GAME_RECONNECT
+                    handleReconnect(ctx, root);
+                    break;
                 case 26: // GAME_UNDO_REQUEST
                     handleUndoRequest(ctx, root);
                     break;
                 case 27: // GAME_UNDO_RESPONSE
                     handleUndoResponse(ctx, root);
+                    break;
+                case 36: // OBSERVER_JOIN - 观战加入
+                    handleObserverJoin(ctx, root);
                     break;
                 case 40: // CHAT_SEND
                     handleChatSend(ctx, root);
@@ -339,7 +346,18 @@ public class JsonMessageHandler {
 
     private void handleUndoResponse(ChannelHandlerContext ctx, JsonNode root) {
         try {
-            boolean accepted = root.path("accepted").asBoolean();
+            // 支持两种格式：直接包含accepted 或 在body中包含accepted
+            boolean accepted;
+
+            if (root.has("body") && root.path("body").isObject()) {
+                // 格式: { type: 27, body: { accepted: true } }
+                accepted = root.path("body").path("accepted").asBoolean();
+            } else {
+                // 格式: { type: 27, accepted: true }
+                accepted = root.path("accepted").asBoolean();
+            }
+
+            logger.info("handleUndoResponse - accepted: {}", accepted);
 
             com.gobang.protocol.protobuf.GobangProto.UndoResponse undoResponse =
                 com.gobang.protocol.protobuf.GobangProto.UndoResponse.newBuilder()
@@ -362,7 +380,22 @@ public class JsonMessageHandler {
 
     private void handleChatSend(ChannelHandlerContext ctx, JsonNode root) {
         try {
-            String content = root.path("content").asText();
+            // 支持两种格式：直接包含content 或 在body中包含content
+            String content = null;
+
+            if (root.has("body") && root.path("body").isObject()) {
+                // 格式: { type: 40, body: { content: "xxx" } }
+                JsonNode body = root.path("body");
+                content = body.path("content").asText();
+            } else {
+                // 格式: { type: 40, content: "xxx" }
+                content = root.path("content").asText();
+            }
+
+            if (content == null || content.isEmpty()) {
+                sendJsonError(ctx, 40, "消息内容不能为空");
+                return;
+            }
 
             com.gobang.protocol.protobuf.GobangProto.ChatSend chatSend =
                 com.gobang.protocol.protobuf.GobangProto.ChatSend.newBuilder()
@@ -378,8 +411,173 @@ public class JsonMessageHandler {
                     .build();
 
             chatHandler.handle(ctx, packet);
+            logger.debug("聊天消息已发送: content={}", content);
         } catch (Exception e) {
             logger.error("处理聊天消息失败", e);
+            sendJsonError(ctx, 40, "发送消息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理游戏重连请求
+     * JSON消息格式: {"type": 25, "body": {"room_id": "room_id"}}
+     */
+    private void handleReconnect(ChannelHandlerContext ctx, JsonNode root) {
+        try {
+            Long userId = AuthHandler.getUserId(ctx.channel());
+            if (userId == null) {
+                sendJsonResponse(ctx, 25, Map.of("success", false, "message", "未认证"));
+                return;
+            }
+
+            // 从body中获取room_id
+            JsonNode body = root.path("body");
+            String roomId = body.path("room_id").asText();
+
+            if (roomId == null || roomId.isEmpty()) {
+                sendJsonResponse(ctx, 25, Map.of("success", false, "message", "房间ID不能为空"));
+                return;
+            }
+
+            logger.info("处理游戏重连: userId={}, roomId={}", userId, roomId);
+
+            // 获取房间和游戏状态
+            var room = gameService.getRoomById(roomId);
+            if (room == null) {
+                sendJsonResponse(ctx, 25, Map.of("success", false, "message", "房间不存在"));
+                return;
+            }
+
+            // 检查用户是否在房间中
+            if (!userId.equals(room.getBlackPlayerId()) && !userId.equals(room.getWhitePlayerId())) {
+                sendJsonResponse(ctx, 25, Map.of("success", false, "message", "您不在此房间中"));
+                return;
+            }
+
+            // 获取对手信息
+            Long opponentId = userId.equals(room.getBlackPlayerId()) ? room.getWhitePlayerId() : room.getBlackPlayerId();
+            var opponent = opponentId != null ? userService.getUserById(opponentId) : null;
+
+            // 构建响应数据
+            Map<String, Object> gameData = new HashMap<>();
+            gameData.put("found", true);
+            gameData.put("room_id", roomId);
+            gameData.put("board", room.getBoard().toArray());
+            gameData.put("current_player", room.getCurrentPlayer());
+            gameData.put("game_state", room.getGameState().name());
+            gameData.put("game_mode", room.getGameMode());
+            gameData.put("black_remaining_time", room.getBlackPlayerRemainingTime());
+            gameData.put("white_remaining_time", room.getWhitePlayerRemainingTime());
+
+            if (opponent != null) {
+                Map<String, Object> opponentInfo = new HashMap<>();
+                opponentInfo.put("user_id", String.valueOf(opponent.getId()));
+                opponentInfo.put("username", opponent.getUsername());
+                opponentInfo.put("nickname", opponent.getNickname());
+                opponentInfo.put("rating", opponent.getRating());
+                gameData.put("opponent", opponentInfo);
+            }
+
+            // 更新用户的channel
+            int playerColor = userId.equals(room.getBlackPlayerId()) ? 1 : 2;
+            if (playerColor == 1) {
+                room.setBlackChannel(ctx.channel());
+            } else {
+                room.setWhiteChannel(ctx.channel());
+            }
+
+            sendJsonResponse(ctx, 25, Map.of("success", true, "data", gameData));
+
+        } catch (Exception e) {
+            logger.error("处理游戏重连失败", e);
+            sendJsonResponse(ctx, 25, Map.of("success", false, "message", "重连失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 处理观战加入请求
+     * JSON消息格式: {"type": 36, "body": {"room_id": "room_id"}}
+     */
+    private void handleObserverJoin(ChannelHandlerContext ctx, JsonNode root) {
+        try {
+            Long userId = AuthHandler.getUserId(ctx.channel());
+            if (userId == null) {
+                sendJsonResponse(ctx, 36, Map.of("success", false, "message", "请先登录"));
+                return;
+            }
+
+            // 从body中获取room_id
+            JsonNode body = root.path("body");
+            String roomId = body.path("room_id").asText();
+
+            if (roomId == null || roomId.isEmpty()) {
+                sendJsonResponse(ctx, 36, Map.of("success", false, "message", "房间ID不能为空"));
+                return;
+            }
+
+            logger.info("处理观战加入: userId={}, roomId={}", userId, roomId);
+
+            // 获取房间
+            var room = gameService.getRoomById(roomId);
+            if (room == null) {
+                sendJsonResponse(ctx, 36, Map.of("success", false, "message", "房间不存在"));
+                return;
+            }
+
+            // 不能观战自己所在的房间
+            if (userId.equals(room.getBlackPlayerId()) || userId.equals(room.getWhitePlayerId())) {
+                sendJsonResponse(ctx, 36, Map.of("success", false, "message", "不能观战自己正在进行的游戏"));
+                return;
+            }
+
+            // 获取用户信息
+            var user = userService.getUserById(userId);
+            if (user == null) {
+                sendJsonResponse(ctx, 36, Map.of("success", false, "message", "用户不存在"));
+                return;
+            }
+
+            // 加入观战
+            room.addObserver(userId, user.getUsername(), user.getNickname(), ctx.channel());
+
+            // 发送游戏状态
+            Map<String, Object> gameState = new HashMap<>();
+            gameState.put("room_id", roomId);
+            gameState.put("board", room.getBoard().toArray());
+            gameState.put("current_player", room.getCurrentPlayer());
+            gameState.put("move_count", room.getMoves().size());
+            gameState.put("game_state", room.getGameState().name());
+            gameState.put("black_remaining_time", room.getBlackPlayerRemainingTime());
+            gameState.put("white_remaining_time", room.getWhitePlayerRemainingTime());
+
+            // 添加玩家信息
+            Map<String, Object> blackPlayer = new HashMap<>();
+            blackPlayer.put("user_id", String.valueOf(room.getBlackPlayerId()));
+            var blackUser = userService.getUserById(room.getBlackPlayerId());
+            if (blackUser != null) {
+                blackPlayer.put("username", blackUser.getUsername());
+                blackPlayer.put("nickname", blackUser.getNickname());
+                blackPlayer.put("rating", blackUser.getRating());
+            }
+            gameState.put("black_player", blackPlayer);
+
+            Map<String, Object> whitePlayer = new HashMap<>();
+            whitePlayer.put("user_id", String.valueOf(room.getWhitePlayerId()));
+            var whiteUser = userService.getUserById(room.getWhitePlayerId());
+            if (whiteUser != null) {
+                whitePlayer.put("username", whiteUser.getUsername());
+                whitePlayer.put("nickname", whiteUser.getNickname());
+                whitePlayer.put("rating", whiteUser.getRating());
+            }
+            gameState.put("white_player", whitePlayer);
+
+            sendJsonResponse(ctx, 36, Map.of("success", true, "message", "加入观战成功", "data", gameState));
+
+            logger.info("用户 {} 加入观战房间 {}", userId, roomId);
+
+        } catch (Exception e) {
+            logger.error("处理观战加入失败", e);
+            sendJsonResponse(ctx, 36, Map.of("success", false, "message", "加入观战失败: " + e.getMessage()));
         }
     }
 

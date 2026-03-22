@@ -31,9 +31,6 @@ public class RoomHandler implements MessageHandler {
     private final RoomManager roomManager;
     private final UserService userService;
 
-    // 房间创建者信息：roomId -> 创建者信息
-    private final Map<String, RoomCreator> roomCreators = new HashMap<>();
-
     public RoomHandler(RoomManager roomManager, UserService userService) {
         this.roomManager = roomManager;
         this.userService = userService;
@@ -119,11 +116,19 @@ public class RoomHandler implements MessageHandler {
                 roomId = newRoom.getRoomId();
             }
 
-            // 保存房间创建者信息
-            RoomCreator creator = new RoomCreator(userId, user.getNickname(), user.getUsername(), ctx.channel());
-            roomCreators.put(roomId, creator);
+            // 获取或创建房间
+            GameRoom room = roomManager.getRoom(roomId);
+            if (room == null) {
+                room = roomManager.createRoom();
+                // 使用生成的房间ID
+                roomId = room.getRoomId();
+            }
 
-            logger.info("User {} created room: {}", userId, roomId);
+            // 将创建者信息设置到房间中
+            room.setCreator(userId, user.getNickname(), user.getUsername(), ctx.channel());
+
+            logger.info("User {} created room: {}, roomManager has {} rooms", userId, roomId,
+                roomManager.getActiveRoomCount());
 
             // 发送成功响应
             Map<String, Object> responseData = new HashMap<>();
@@ -161,13 +166,22 @@ public class RoomHandler implements MessageHandler {
                 return;
             }
 
-            // 获取房间创建者信息
-            RoomCreator creator = roomCreators.get(roomId);
-            if (creator == null) {
+            // 获取房间
+            logger.info("Looking for room: {}, all rooms: {}", roomId, roomManager.getAllRooms().stream()
+                .map(r -> r.getRoomId()).collect(java.util.stream.Collectors.toList()));
+            GameRoom room = roomManager.getRoom(roomId);
+            if (room == null || !room.hasCreator()) {
+                logger.warn("Room not found: {}, hasCreator: {}", roomId, room != null ? room.hasCreator() : "room is null");
                 ResponseUtil.sendJsonResponse(ctx.channel(), MessageType.JOIN_ROOM.getValue(), sequenceId,
                     Map.of("success", false, "message", "房间不存在"));
                 return;
             }
+
+            // 获取房间创建者信息
+            Long creatorUserId = room.getCreatorId();
+            String creatorNickname = room.getCreatorNickname();
+            String creatorUsername = room.getCreatorUsername();
+            Channel creatorChannel = room.getCreatorChannel();
 
             // 获取加入者信息
             User joiner = userService.getUserById(userId);
@@ -177,57 +191,37 @@ public class RoomHandler implements MessageHandler {
                 return;
             }
 
-            // 获取或创建房间
-            GameRoom room = roomManager.getRoom(roomId);
-            if (room == null) {
-                room = roomManager.createRoom();
-                // 需要用正确的roomId
-                // 这里简化处理，直接使用现有的房间
-            }
-
             logger.info("User {} joining room: {}", userId, roomId);
 
             // 开始游戏：创建者为黑方，加入者为白方
-            room.startGame(creator.userId, creator.channel, userId, ctx.channel());
+            room.startGame(creatorUserId, creatorChannel, userId, ctx.channel());
 
             // 设置游戏模式为休闲（房间对战不计入排位）
             room.setGameMode("casual");
 
             // 将玩家加入房间管理器
-            roomManager.joinRoom(roomId, creator.userId, creator.channel);
+            roomManager.joinRoom(roomId, creatorUserId, creatorChannel);
             roomManager.joinRoom(roomId, userId, ctx.channel());
 
-            // 向创建者发送通知（有人加入了）
-            Map<String, Object> creatorNotification = new HashMap<>();
-            creatorNotification.put("type", MessageType.ROOM_JOINED.getValue());
-            creatorNotification.put("player", Map.of(
-                "user_id", userId,
-                "nickname", joiner.getNickname(),
-                "username", joiner.getUsername()
-            ));
-
-            String creatorJson = objectMapper.writeValueAsString(creatorNotification);
-            creator.channel.writeAndFlush(new io.netty.handler.codec.http.websocketx.TextWebSocketFrame(creatorJson));
-
-            // 向加入者发送游戏开始通知
+            // 向加入者发送加入成功响应
             Map<String, Object> joinerResponse = new HashMap<>();
             joinerResponse.put("success", true);
             joinerResponse.put("room_id", roomId);
             joinerResponse.put("my_color", 2); // 加入者执白
             joinerResponse.put("opponent", Map.of(
-                "user_id", creator.userId,
-                "nickname", creator.nickname,
-                "username", creator.username
+                "user_id", creatorUserId,
+                "nickname", creatorNickname,
+                "username", creatorUsername
             ));
             joinerResponse.put("game_started", true);
 
             ResponseUtil.sendJsonResponse(ctx.channel(), MessageType.JOIN_ROOM.getValue(), sequenceId, joinerResponse);
 
-            // 向双方发送初始游戏状态
-            sendGameStateToPlayer(room, creator.userId, creator.channel, 1);
+            // 向双方发送初始游戏状态（这样创建者也会跳转到游戏页面）
+            sendGameStateToPlayer(room, creatorUserId, creatorChannel, 1);
             sendGameStateToPlayer(room, userId, ctx.channel(), 2);
 
-            logger.info("Game started in room {}: black={}, white={}", roomId, creator.userId, userId);
+            logger.info("Game started in room {}: black={}, white={}", roomId, creatorUserId, userId);
 
         } catch (Exception e) {
             logger.error("Error joining room {} for user: {}", roomId, userId, e);
@@ -259,9 +253,6 @@ public class RoomHandler implements MessageHandler {
 
             // 从房间管理器移除玩家
             roomManager.leaveRoom(roomId, userId);
-
-            // 清理房间创建者信息
-            roomCreators.remove(roomId);
 
             logger.info("User {} left room: {}", userId, roomId);
 
@@ -307,9 +298,6 @@ public class RoomHandler implements MessageHandler {
                 return;
             }
 
-            // 获取房间创建者信息
-            RoomCreator creator = roomCreators.get(roomId);
-
             // 构建房间信息响应
             Map<String, Object> roomInfo = new HashMap<>();
             roomInfo.put("success", true);
@@ -319,11 +307,11 @@ public class RoomHandler implements MessageHandler {
             roomInfo.put("move_count", room.getMoves().size());
             roomInfo.put("game_mode", room.getGameMode());
 
-            if (creator != null) {
+            if (room.hasCreator()) {
                 roomInfo.put("creator", Map.of(
-                    "user_id", creator.userId,
-                    "nickname", creator.nickname,
-                    "username", creator.username
+                    "user_id", room.getCreatorId(),
+                    "nickname", room.getCreatorNickname(),
+                    "username", room.getCreatorUsername()
                 ));
             }
 
@@ -341,18 +329,17 @@ public class RoomHandler implements MessageHandler {
      */
     private void sendGameStateToPlayer(GameRoom room, Long userId, Channel channel, int myColor) {
         try {
+            // 使用标准JSON格式（数据在body中）
             Map<String, Object> gameState = new HashMap<>();
-            gameState.put("type", MessageType.GAME_STATE.getValue());
             gameState.put("room_id", room.getRoomId());
             gameState.put("my_color", myColor);
-            gameState.put("opponent_color", myColor == 1 ? 2 : 1);
             gameState.put("current_player", room.getCurrentPlayer());
             gameState.put("game_state", room.getGameState().name());
             gameState.put("board", room.getBoard().toArray());
             gameState.put("move_count", room.getMoves().size());
+            gameState.put("remaining_time", (int)(room.getRemainingTime() / 1000));
 
-            String json = objectMapper.writeValueAsString(gameState);
-            channel.writeAndFlush(new io.netty.handler.codec.http.websocketx.TextWebSocketFrame(json));
+            ResponseUtil.sendJsonResponse(channel, MessageType.GAME_STATE.getValue(), 0, gameState);
 
             logger.debug("Sent game state to user {}: myColor={}, currentPlayer={}", userId, myColor, room.getCurrentPlayer());
         } catch (Exception e) {
@@ -363,22 +350,5 @@ public class RoomHandler implements MessageHandler {
     @Override
     public MessageType getSupportedType() {
         return MessageType.CREATE_ROOM; // 返回房间相关的类型
-    }
-
-    /**
-     * 房间创建者信息
-     */
-    private static class RoomCreator {
-        final Long userId;
-        final String nickname;
-        final String username;
-        final Channel channel;
-
-        RoomCreator(Long userId, String nickname, String username, Channel channel) {
-            this.userId = userId;
-            this.nickname = nickname;
-            this.username = username;
-            this.channel = channel;
-        }
     }
 }

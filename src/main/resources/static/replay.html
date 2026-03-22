@@ -63,14 +63,22 @@
         .replay-container {
             flex: 1;
             display: flex;
+            flex-direction: column;
             gap: 20px;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             width: 100%;
         }
 
+        /* 顶部区域：棋盘在左，控制和记录在右 */
+        .top-section {
+            display: flex;
+            gap: 20px;
+            min-height: 0;
+        }
+
         .board-section {
-            flex: 1;
+            flex: 0 0 auto;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -97,10 +105,40 @@
             border-radius: 8px;
             position: relative;
             border: 2px solid #ff8c61;
-            width: min(95vw, 600px);
-            height: min(95vw, 600px);
-            max-height: min(80vh, 600px);
-            aspect-ratio: 1 / 1;
+            width: 600px;
+            height: 600px;
+        }
+
+        /* 右侧双栏区域 */
+        .right-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        /* 双栏布局：控制和记录 */
+        .two-columns {
+            display: flex;
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .controls-column {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .moves-column {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 底部对战记录区域 */
+        .battle-records-section {
+            width: 100%;
         }
 
         .board::before {
@@ -167,7 +205,6 @@
         }
 
         .controls-section {
-            width: 300px;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -178,6 +215,15 @@
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 2px 12px rgba(255, 149, 0, 0.1);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-card .move-list {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 300px;
         }
 
         .panel-title {
@@ -372,26 +418,103 @@
             color: #666;
         }
 
+        /* 对战记录样式 */
+        .battle-records {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .record-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .record-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .record-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .record-avatar.black {
+            background: linear-gradient(135deg, #333, #000);
+        }
+
+        .record-avatar.white {
+            background: linear-gradient(135deg, #fff, #ccc);
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .record-info {
+            flex: 1;
+        }
+
+        .record-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .record-result {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .record-result.win {
+            color: #28a745;
+        }
+
+        .record-result.lose {
+            color: #dc3545;
+        }
+
+        .record-result.draw {
+            color: #ffc107;
+        }
+
+        .record-result.unfinished {
+            color: #6c757d;
+        }
+
         /* 响应式 */
+        @media (max-width: 1200px) {
+            .board {
+                width: 500px;
+                height: 500px;
+            }
+        }
+
         @media (max-width: 1024px) {
-            .replay-container {
-                gap: 16px;
+            .top-section {
+                flex-direction: column;
             }
 
-            .controls-section {
-                width: 100%;
-                max-width: 100%;
-            }
-
-            /* 棋盘保持固定大小，支持横向滚动 */
-            .board-section {
-                overflow-x: auto;
+            .two-columns {
+                flex-direction: column;
             }
 
             .board {
                 width: 480px;
                 height: 480px;
-                min-width: 480px;
             }
 
             .panel-card {
@@ -417,14 +540,6 @@
                 font-size: 18px;
             }
 
-            .replay-container {
-                flex-direction: column;
-            }
-
-            .controls-section {
-                width: 100%;
-            }
-
             .board-wrapper {
                 padding: 8px;
                 overflow-x: auto;
@@ -432,9 +547,9 @@
 
             /* 棋盘保持固定大小 */
             .board {
-                width: 480px;
-                height: 480px;
-                min-width: 480px;
+                width: 420px;
+                height: 420px;
+                min-width: 420px;
             }
 
             .panel-card {
@@ -494,49 +609,74 @@
     </header>
 
     <div class="replay-container">
-        <div class="board-section">
-            <div class="board-wrapper">
-                <div class="board" id="board"></div>
-            </div>
+        <!-- 顶部区域：棋盘在左，控制和记录在右 -->
+        <div class="top-section">
+            <!-- 左侧：棋盘 -->
+            <div class="board-section">
+                <div class="board-wrapper">
+                    <div class="board" id="board"></div>
+                </div>
 
-            <div class="panel-card" style="width: 100%; margin-top: 20px;">
-                <div class="panel-title">对局信息</div>
-                <div class="game-info" id="gameInfo"></div>
-            </div>
-        </div>
-
-        <div class="controls-section">
-            <div class="panel-card">
-                <div class="panel-title">回放控制</div>
-                <div class="replay-controls">
-                    <div class="control-row">
-                        <button class="control-btn" onclick="goToStart()">⏮</button>
-                        <button class="control-btn" onclick="goToPrev()">◀</button>
-                        <button class="control-btn primary" id="playPauseBtn" onclick="togglePlay()">▶</button>
-                        <button class="control-btn" onclick="goToNext()">▶</button>
-                        <button class="control-btn" onclick="goToEnd()">⏭</button>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                    </div>
-                    <div class="move-info">
-                        <span class="move-info-text">第 <span id="currentMove">0</span> / <span id="totalMoves">0</span> 手</span>
-                    </div>
-                    <div class="current-player">
-                        <div class="player-indicator" id="currentPlayerIndicator"></div>
-                        <span id="currentPlayerText">黑方执子</span>
-                    </div>
-                    <div class="control-row">
-                        <button class="control-btn" onclick="setSpeed(2000)">0.5x</button>
-                        <button class="control-btn" onclick="setSpeed(1000)">1x</button>
-                        <button class="control-btn" onclick="setSpeed(500)">2x</button>
-                    </div>
+                <div class="panel-card" style="width: 100%; margin-top: 20px;">
+                    <div class="panel-title">对局信息</div>
+                    <div class="game-info" id="gameInfo"></div>
                 </div>
             </div>
 
+            <!-- 右侧：双栏（回放控制 + 落子记录） -->
+            <div class="right-section">
+                <div class="two-columns">
+                    <!-- 左栏：回放控制 -->
+                    <div class="controls-column">
+                        <div class="panel-card">
+                            <div class="panel-title">回放控制</div>
+                            <div class="replay-controls">
+                                <div class="control-row">
+                                    <button class="control-btn" onclick="goToStart()">⏮</button>
+                                    <button class="control-btn" onclick="goToPrev()">◀</button>
+                                    <button class="control-btn primary" id="playPauseBtn" onclick="togglePlay()">▶</button>
+                                    <button class="control-btn" onclick="goToNext()">▶</button>
+                                    <button class="control-btn" onclick="goToEnd()">⏭</button>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                                </div>
+                                <div class="move-info">
+                                    <span class="move-info-text">第 <span id="currentMove">0</span> / <span id="totalMoves">0</span> 手</span>
+                                </div>
+                                <div class="current-player">
+                                    <div class="player-indicator" id="currentPlayerIndicator"></div>
+                                    <span id="currentPlayerText">黑方执子</span>
+                                </div>
+                                <div class="control-row">
+                                    <button class="control-btn" onclick="setSpeed(2000)">0.5x</button>
+                                    <button class="control-btn" onclick="setSpeed(1000)">1x</button>
+                                    <button class="control-btn" onclick="setSpeed(500)">2x</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右栏：落子记录 -->
+                    <div class="moves-column">
+                        <div class="panel-card">
+                            <div class="panel-title">落子记录</div>
+                            <div class="move-list" id="moveList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部：对战记录 -->
+        <div class="battle-records-section">
             <div class="panel-card">
-                <div class="panel-title">落子记录</div>
-                <div class="move-list" id="moveList"></div>
+                <div class="panel-title">对战记录</div>
+                <div class="battle-records" id="battleRecords">
+                    <div style="text-align: center; color: #999; padding: 20px;">
+                        暂无对战记录
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -550,20 +690,68 @@
         let playSpeed = 1000;
         let replayData = null;
 
+        // 从URL获取房间ID
+        function getRoomIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('roomId');
+        }
+
+        // 从API获取复盘数据
+        async function fetchReplayData(roomId) {
+            console.log('=== fetchReplayData === roomId:', roomId);
+
+            try {
+                const response = await fetch(`/api/records/replay/${roomId}`);
+                console.log('fetchReplayData - 响应状态:', response.status);
+
+                const result = await response.json();
+                console.log('fetchReplayData - 响应结果:', result);
+
+                if (result.success && result.data) {
+                    replayData = result.data;
+                    moves = replayData.moves || [];
+                    console.log('fetchReplayData - 解析后数据:', {
+                        winnerId: replayData.winnerId,
+                        endReason: replayData.endReason,
+                        moveCount: moves.length
+                    });
+
+                    document.getElementById('roomId').textContent = roomId;
+                    document.getElementById('totalMoves').textContent = moves.length;
+                    return true;
+                } else {
+                    console.error('fetchReplayData - API返回失败:', result);
+                    alert('获取复盘数据失败: ' + (result.message || '未知错误'));
+                    return false;
+                }
+            } catch (error) {
+                console.error('获取复盘数据失败:', error);
+                alert('获取复盘数据失败，请稍后重试');
+                return false;
+            }
+        }
+
         // 初始化
-        function init() {
-            // 从 sessionStorage 获取复盘数据
-            const replayStr = sessionStorage.getItem('replayData');
-            if (replayStr) {
-                replayData = JSON.parse(replayStr);
-                document.getElementById('roomId').textContent = sessionStorage.getItem('replayRoomId') || '-';
-                moves = replayData.moves || [];
-                document.getElementById('totalMoves').textContent = moves.length;
+        async function init() {
+            const roomId = getRoomIdFromUrl();
+
+            if (!roomId) {
+                alert('缺少房间ID参数');
+                goBack();
+                return;
+            }
+
+            // 从API获取复盘数据
+            const success = await fetchReplayData(roomId);
+            if (!success) {
+                goBack();
+                return;
             }
 
             initBoard();
             renderMoveList();
             updateGameInfo();
+            updateBattleRecords();
             updateDisplay();
         }
 
@@ -670,6 +858,78 @@
             `;
         }
 
+        function updateBattleRecords() {
+            const container = document.getElementById('battleRecords');
+            if (!replayData || !replayData.players) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #999; padding: 20px;">
+                        暂无对战记录
+                    </div>
+                `;
+                return;
+            }
+
+            const { blackPlayer, whitePlayer, winner } = replayData;
+            const winnerId = winner?.id || winner?.userId;
+            const endReason = replayData.endReason;
+
+            // 判断游戏结果
+            // endReason: 0=正常胜负, 1=失败, 2=平局, 3=认输, 4=超时
+            let gameResult = 'finished';
+            if (endReason === 2) {
+                gameResult = 'draw'; // 平局
+            } else if (!winnerId) {
+                gameResult = 'unfinished'; // 未完成/异常
+            }
+
+            // 获取结果显示
+            function getResultText(playerId) {
+                if (gameResult === 'draw') {
+                    return '和棋';
+                } else if (gameResult === 'unfinished') {
+                    return '未完成';
+                } else {
+                    return playerId === winnerId ? '胜利' : '失败';
+                }
+            }
+
+            // 获取结果类名
+            function getResultClass(playerId) {
+                if (gameResult === 'draw') {
+                    return 'draw';
+                } else if (gameResult === 'unfinished') {
+                    return 'unfinished';
+                } else {
+                    return playerId === winnerId ? 'win' : 'lose';
+                }
+            }
+
+            console.log('updateBattleRecords - winnerId:', winnerId, 'endReason:', endReason, 'gameResult:', gameResult);
+
+            container.innerHTML = `
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+                    <div class="record-item ${winnerId === blackPlayer?.id ? 'win' : ''}">
+                        <div class="record-avatar black">${blackPlayer?.nickname?.charAt(0) || '黑'}</div>
+                        <div class="record-info">
+                            <div class="record-name">${blackPlayer?.nickname || '黑方'}</div>
+                            <div class="record-result ${getResultClass(blackPlayer?.id)}">
+                                ${getResultText(blackPlayer?.id)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="record-item ${winnerId === whitePlayer?.id ? 'win' : ''}">
+                        <div class="record-avatar white">${whitePlayer?.nickname?.charAt(0) || '白'}</div>
+                        <div class="record-info">
+                            <div class="record-name">${whitePlayer?.nickname || '白方'}</div>
+                            <div class="record-result ${getResultClass(whitePlayer?.id)}">
+                                ${getResultText(whitePlayer?.id)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function goToMove(index) {
             stopPlay();
             currentMoveIndex = index;
@@ -749,9 +1009,7 @@
         }
 
         function goBack() {
-            sessionStorage.removeItem('replayData');
-            sessionStorage.removeItem('replayRoomId');
-            window.location.href = 'home.html';
+            window.location.href = 'index.html';
         }
 
         // 键盘快捷键

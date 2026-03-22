@@ -103,15 +103,86 @@ public class ELOCalculator {
     }
 
     /**
-     * 根据积分计算等级
+     * 根据积分计算段位（1-25，数值越高段位越高）
      *
      * @param rating 积分
-     * @return 等级
+     * @return 段位（1=入门棋手，10=九段）
      */
     public static int calculateLevel(int rating) {
         if (rating < 1200) {
-            return 1;
+            return 1; // 入门棋手
+        } else if (rating < 1400) {
+            return 2; // 初段
+        } else if (rating < 1600) {
+            return 3; // 二段
+        } else if (rating < 1800) {
+            return 4; // 三段
+        } else if (rating < 2000) {
+            return 5; // 四段
+        } else if (rating < 2200) {
+            return 6; // 五段
+        } else if (rating < 2400) {
+            return 7; // 六段
+        } else if (rating < 2600) {
+            return 8; // 七段
+        } else if (rating < 2800) {
+            return 9; // 八段
+        } else if (rating < 3000) {
+            return 10; // 九段
+        } else {
+            return 10; // 3000+ 也是九段
         }
-        return (rating - 1200) / 200 + 2;
+    }
+
+    /**
+     * 获取段位名称
+     *
+     * @param rating 积分
+     * @return 段位名称
+     */
+    public static String getDanRank(int rating) {
+        if (rating < 1200) {
+            return "入门棋手";
+        } else if (rating < 1400) {
+            return "初段";
+        } else if (rating < 1600) {
+            return "二段";
+        } else if (rating < 1800) {
+            return "三段";
+        } else if (rating < 2000) {
+            return "四段";
+        } else if (rating < 2200) {
+            return "五段";
+        } else if (rating < 2400) {
+            return "六段";
+        } else if (rating < 2600) {
+            return "七段";
+        } else if (rating < 2800) {
+            return "八段";
+        } else {
+            return "九段";
+        }
+    }
+
+    /**
+     * 获取段位对应的积分范围
+     *
+     * @param danRank 段位名称
+     * @return 积分范围 [min, max]
+     */
+    public static int[] getDanRankRange(String danRank) {
+        return switch (danRank) {
+            case "入门棋手" -> new int[]{0, 1199};
+            case "初段" -> new int[]{1200, 1399};
+            case "二段" -> new int[]{1400, 1599};
+            case "三段" -> new int[]{1600, 1799};
+            case "四段" -> new int[]{1800, 1999};
+            case "五段" -> new int[]{2000, 2199};
+            case "六段" -> new int[]{2200, 2399};
+            case "七段" -> new int[]{2400, 2599};
+            case "八段" -> new int[]{2600, 2799};
+            case "九段" -> new int[]{2800, 99999};
+            default -> new int[]{0, 1199};
+        };
     }
 }

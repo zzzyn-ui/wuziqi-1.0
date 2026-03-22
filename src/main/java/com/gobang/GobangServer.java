@@ -14,6 +14,7 @@ import com.gobang.core.social.ObserverManager;
 import com.gobang.service.AuthService;
 import com.gobang.service.ChatService;
 import com.gobang.service.FriendService;
+import com.gobang.service.FriendGroupService;
 import com.gobang.service.GameService;
 import com.gobang.service.MatchQueueService;
 import com.gobang.service.RecordService;
@@ -24,6 +25,7 @@ import com.gobang.service.ActivityLogService;
 import com.gobang.service.GameFavoriteService;
 import com.gobang.service.GameInvitationService;
 import com.gobang.service.MatchStatusService;
+import com.gobang.service.PuzzleService;
 import com.gobang.controller.ApiServer;
 import com.gobang.mapper.UserMapper;
 import com.gobang.util.JwtUtil;
@@ -70,11 +72,13 @@ public class GobangServer {
     private final RoomService roomService;
     private final ChatService chatService;
     private final FriendService friendService;
+    private final FriendGroupService friendGroupService;
     private final RecordService recordService;
     private final UserSettingsService userSettingsService;
     private final ActivityLogService activityLogService;
     private final GameFavoriteService gameFavoriteService;
     private final GameInvitationService gameInvitationService;
+    private final PuzzleService puzzleService;
     private final ApiServer apiServer;
 
     // 匹配状态服务需要在 NettyServer 初始化后创建
@@ -136,20 +140,60 @@ public class GobangServer {
         this.authService = new AuthService(sqlSessionFactory, jwtUtil);
         this.chatService = new ChatService(sqlSessionFactory);
         this.friendService = new FriendService(sqlSessionFactory);
+        // 获取 Mapper 实例用于 FriendGroupService
+        com.gobang.mapper.FriendGroupMapper friendGroupMapper;
+        com.gobang.mapper.FriendMapper friendMapper;
+        try (org.apache.ibatis.session.SqlSession session = sqlSessionFactory.openSession()) {
+            friendGroupMapper = session.getMapper(com.gobang.mapper.FriendGroupMapper.class);
+            friendMapper = session.getMapper(com.gobang.mapper.FriendMapper.class);
+        }
+        this.friendGroupService = new FriendGroupService(friendGroupMapper, friendMapper);
         this.recordService = new RecordService(sqlSessionFactory);
         this.userSettingsService = new UserSettingsService(sqlSessionFactory);
         this.activityLogService = new ActivityLogService(sqlSessionFactory);
         this.gameFavoriteService = new GameFavoriteService(sqlSessionFactory);
         this.gameInvitationService = new GameInvitationService(sqlSessionFactory);
 
+        // 初始化残局服务
+        this.puzzleService = new PuzzleService(sqlSessionFactory);
+
+        // 自动检查并初始化残局数据
+        try {
+            DataSource dataSource = sqlSessionFactory.getConfiguration().getEnvironment().getDataSource();
+            logger.info("检查残局数据...");
+            if (com.gobang.util.DatabaseInitUtil.initPuzzleData(dataSource)) {
+                logger.info("✓ 残局数据已就绪");
+            } else {
+                logger.warn("⚠️ 残局数据初始化失败，残局功能可能无法使用");
+            }
+        } catch (Exception e) {
+            logger.warn("残局数据检查失败: {}", e.getMessage());
+        }
+
         // 从配置加载匹配参数
         var matchConfig = appConfig.getMatch();
-        this.matchQueueService = new MatchQueueService(redisUtil);
+
+        // 尝试初始化 MatchQueueService（需要 Redis）
+        MatchQueueService tempMatchQueueService = null;
+        try {
+            logger.info("正在测试 Redis 连接...");
+            // 使用专门的测试方法，会抛出异常如果连接失败
+            redisUtil.testConnection();
+            tempMatchQueueService = new MatchQueueService(redisUtil);
+            logger.info("✓ Redis 连接正常，已启用分布式匹配队列");
+        } catch (Exception e) {
+            logger.warn("⚠️ Redis 连接失败，将使用本地内存匹配队列");
+            logger.warn("Redis 错误: {}", e.getMessage());
+            tempMatchQueueService = null;
+        }
+        this.matchQueueService = tempMatchQueueService;
+
         this.gameService = new GameService(
                 roomManager,
                 userService,
                 sqlSessionFactory,
                 matchQueueService,
+                redisUtil,  // 添加RedisUtil用于断线重连和超时检测
                 matchConfig.getRatingDiff(),
                 matchConfig.getMaxQueueTime(),
                 matchConfig.getCheckInterval(),
@@ -167,22 +211,18 @@ public class GobangServer {
             gameInvitationService,
             authService,
             gameService,
-            friendService
+            friendService,
+            roomManager,
+            friendManager,
+            sqlSessionFactory
         );
 
-        this.roomService = new RoomService(roomManager, userService);
+        this.roomService = new RoomService(roomManager, userService, recordService);
 
         // 设置房间超时回调
         this.roomManager.setTimeoutCallback((room, timeoutPlayerId) -> {
-            // 超时玩家判负，使用 RoomService 处理
-            Long winnerId;
-            if (timeoutPlayerId.equals(room.getBlackPlayerId())) {
-                winnerId = room.getWhitePlayerId();
-            } else {
-                winnerId = room.getBlackPlayerId();
-            }
-            // 使用 RoomService 的 resign 方法处理超时
-            roomService.resign(timeoutPlayerId, room.getRoomId());
+            // 超时玩家判负，使用 RoomService 的 handleTimeout 方法
+            roomService.handleTimeout(timeoutPlayerId, room.getRoomId());
         });
 
         // 初始化Netty服务器
@@ -199,12 +239,19 @@ public class GobangServer {
                 roomService,
                 chatService,
                 friendService,
+                friendGroupService,
                 roomManager,
                 friendManager,
                 chatManager,
                 observerManager,
                 rateLimitManager,
-                jwtUtil
+                jwtUtil,
+                userSettingsService,
+                activityLogService,
+                gameFavoriteService,
+                gameInvitationService,
+                recordService,
+                puzzleService
         );
 
         // 初始化匹配状态广播服务（需要 NettyServer 的 ChannelManager）
@@ -252,12 +299,16 @@ public class GobangServer {
         configuration.addMapper(com.gobang.mapper.GameRecordMapper.class);
         configuration.addMapper(com.gobang.mapper.UserStatsMapper.class);
         configuration.addMapper(com.gobang.mapper.FriendMapper.class);
+        configuration.addMapper(com.gobang.mapper.FriendGroupMapper.class);
         configuration.addMapper(com.gobang.mapper.ChatMessageMapper.class);
         // 新增功能Mapper
         configuration.addMapper(com.gobang.mapper.UserSettingsMapper.class);
         configuration.addMapper(com.gobang.mapper.UserActivityLogMapper.class);
         configuration.addMapper(com.gobang.mapper.GameFavoriteMapper.class);
         configuration.addMapper(com.gobang.mapper.GameInvitationMapper.class);
+        configuration.addMapper(com.gobang.mapper.PuzzleMapper.class);
+        configuration.addMapper(com.gobang.mapper.PuzzleRecordMapper.class);
+        configuration.addMapper(com.gobang.mapper.PuzzleStatsMapper.class);
 
         return new SqlSessionFactoryBuilder().build(configuration);
     }
@@ -321,16 +372,15 @@ public class GobangServer {
         logger.info("  五子棋在线对战服务器启动中...");
         logger.info("========================================");
 
-        // 启动 HTTP API 服务器
-        try {
-            apiServer.start();
-            logger.info("HTTP API 服务器已启动，监听端口: 8080");
-        } catch (IOException e) {
-            logger.error("启动 HTTP API 服务器失败", e);
-        }
+        // 不启动 HTTP API 服务器（9090端口），所有功能已迁移到 Netty (8083)
+        logger.info("HTTP API 功能已集成到 Netty 服务器 (8083端口)");
 
-        // 启动 WebSocket 服务器
+        // 启动 Netty 服务器（支持 HTTP + WebSocket）
         nettyServer.start();
+
+        // 启动超时检查任务
+        gameService.startTimeoutChecker();
+        logger.info("超时检查任务已启动");
 
         // 启动匹配状态广播服务
         matchStatusService.start();
@@ -338,8 +388,9 @@ public class GobangServer {
 
         logger.info("========================================");
         logger.info("  服务器启动完成！");
-        logger.info("  WebSocket端点: ws://0.0.0.0:9090/ws");
-        logger.info("  HTTP API端点: http://0.0.0.0:8080/api");
+        logger.info("  服务端点: http://0.0.0.0:8083");
+        logger.info("  WebSocket: ws://0.0.0.0:8083/ws");
+        logger.info("  HTTP API: http://0.0.0.0:8083/api");
         logger.info("========================================");
     }
 

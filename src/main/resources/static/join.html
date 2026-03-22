@@ -280,10 +280,10 @@
 
         const MessageType = {
             UNKNOWN: 0,
-            CREATE_ROOM: 15,
-            JOIN_ROOM: 16,
-            ROOM_JOINED: 17,
-            GAME_STATE: 22
+            CREATE_ROOM: 16,
+            JOIN_ROOM: 17,
+            ROOM_JOINED: 20,
+            GAME_STATE: 32
         };
 
         // 初始化
@@ -343,19 +343,32 @@
         }
 
         function connectWebSocket(roomId) {
+            // 动态获取WebSocket地址 - 支持本地开发和ngrok穿透
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const hostname = window.location.hostname;
-            const wsPort = '8083';
-            const wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+            let wsUrl;
+            if (isLocalhost) {
+                wsUrl = `${protocol}//${hostname}:8083/ws`;
+            } else {
+                wsUrl = `${protocol}//${window.location.host}/ws`;
+            }
 
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
                 console.log('WebSocket connected');
-                // 发送加入房间消息
-                sendMessage(MessageType.JOIN_ROOM, {
-                    room_id: roomId
-                });
+                // 先发送认证消息
+                const token = localStorage.getItem('authToken');
+                if (token) {
+                    sendMessage(100, { token: token }); // TOKEN_AUTH
+                }
+                // 然后发送加入房间消息
+                setTimeout(() => {
+                    sendMessage(MessageType.JOIN_ROOM, {
+                        room_id: roomId
+                    });
+                }, 300);
             };
 
             ws.onmessage = (event) => {
@@ -414,9 +427,9 @@
                 case MessageType.GAME_STATE:
                     // 收到游戏状态，跳转到游戏页面
                     console.log('Game state received:', msg);
-                    if (msg.room_id) {
-                        const myColor = msg.my_color || 2;
-                        window.location.href = `game.html?room=${msg.room_id}&my_color=${myColor}`;
+                    if (msg.body && msg.body.room_id) {
+                        const myColor = msg.body.my_color || 2;
+                        window.location.href = `game.html?room=${msg.body.room_id}&my_color=${myColor}`;
                     }
                     break;
                 default:

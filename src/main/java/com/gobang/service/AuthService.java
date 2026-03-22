@@ -18,7 +18,13 @@ import at.favre.lib.crypto.bcrypt.BCrypt;
 public class AuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
-    private static final int BCRYPT_WORK_FACTOR = 12; // BCrypt 工作因子
+
+    /**
+     * BCrypt 工作因子
+     * 值为12表示2^12次迭代，提供良好的安全性和性能平衡
+     * 增加该值会提高安全性但降低性能
+     */
+    private static final int BCRYPT_WORK_FACTOR = 12;
 
     private final SqlSessionFactory sqlSessionFactory;
     private final JwtUtil jwtUtil;
@@ -37,14 +43,8 @@ public class AuthService {
      * @return 注册的用户，失败返回null
      */
     public User register(String username, String password, String nickname) {
-        logger.info("=== REGISTER START ===");
-        logger.info("Register request - username: {}, nickname: {}", username, nickname);
-
         try (SqlSession session = sqlSessionFactory.openSession()) {
-            logger.info("SqlSession created successfully");
-
             UserMapper userMapper = session.getMapper(UserMapper.class);
-            logger.info("UserMapper obtained: {}", userMapper);
 
             // 检查用户名是否已存在
             User existing = userMapper.findByUsername(username);
@@ -52,37 +52,27 @@ public class AuthService {
                 logger.warn("Registration failed: username {} already exists", username);
                 return null;
             }
-            logger.info("Username check passed - username {} is available", username);
 
             // 使用 BCrypt 加密密码
             String hashedPassword = BCrypt.withDefaults().hashToString(BCRYPT_WORK_FACTOR, password.toCharArray());
-            logger.info("Password hashed successfully");
 
             // 创建新用户
             User user = new User(username, hashedPassword, nickname);
             user.setStatus(0);
             user.setCreatedAt(LocalDateTime.now());
-            logger.info("User object created: username={}, nickname={}, status={}",
-                user.getUsername(), user.getNickname(), user.getStatus());
 
             int result = userMapper.insert(user);
-            logger.info("Insert executed, result: {}, generated ID: {}", result, user.getId());
-
             session.commit();
-            logger.info("Transaction committed");
 
             if (result > 0) {
-                logger.info("User registered successfully: {} with ID: {}", username, user.getId());
+                logger.info("User registered successfully: {}", username);
                 return user;
             }
 
-            logger.warn("Insert returned 0, registration failed");
             return null;
         } catch (Exception e) {
-            logger.error("Registration failed with exception for username: {}", username, e);
+            logger.error("Registration failed for username: {}", username, e);
             return null;
-        } finally {
-            logger.info("=== REGISTER END ===");
         }
     }
 
@@ -115,9 +105,11 @@ public class AuthService {
                 return null;
             }
 
-            // 更新最后在线时间
+            // 更新最后在线时间和状态
             user.setLastOnline(LocalDateTime.now());
+            user.setStatus(1); // 设置为在线状态
             userMapper.updateLastOnline(user.getId(), user.getLastOnline());
+            userMapper.updateStatus(user.getId(), 1);
             session.commit();
 
             logger.info("User logged in: {}", username);
@@ -173,5 +165,22 @@ public class AuthService {
      */
     public String hashPassword(String password) {
         return BCrypt.withDefaults().hashToString(BCRYPT_WORK_FACTOR, password.toCharArray());
+    }
+
+    /**
+     * 用户登出
+     *
+     * @param userId 用户ID
+     */
+    public void logout(Long userId) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper userMapper = session.getMapper(UserMapper.class);
+            // 设置为离线状态
+            userMapper.updateStatus(userId, 0);
+            session.commit();
+            logger.info("User logged out: {}", userId);
+        } catch (Exception e) {
+            logger.error("Failed to logout user: {}", userId, e);
+        }
     }
 }

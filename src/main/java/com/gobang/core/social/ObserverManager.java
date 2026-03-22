@@ -68,9 +68,14 @@ public class ObserverManager {
         var room = roomManager.getRoom(roomId);
 
         if (room != null) {
-            // 这里需要从GameRoom获取观战者列表
-            // 由于GameRoom中observers是private，需要添加getter方法
-            // 暂时返回空列表
+            for (com.gobang.core.room.GameRoom.Observer observer : room.getObservers()) {
+                GobangProto.ObserverInfo info = GobangProto.ObserverInfo.newBuilder()
+                        .setUserId(String.valueOf(observer.getUserId()))
+                        .setUsername(observer.getUsername())
+                        .setNickname(observer.getNickname())
+                        .build();
+                observers.add(info);
+            }
         }
 
         return observers;

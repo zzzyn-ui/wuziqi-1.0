@@ -442,21 +442,24 @@
         const AI_LEVEL = {
             EASY: {
                 name: '简单',
-                depth: 2,
-                thinkTime: 700,
-                mistakeRate: 0.15
+                depth: 1,
+                thinkTime: 500,
+                mistakeRate: 0.35,  // 35%概率随机落子
+                searchRadius: 3     // 只考虑周围3格内的位置
             },
             MEDIUM: {
                 name: '中等',
-                depth: 4,
-                thinkTime: 1200,
-                mistakeRate: 0.05
+                depth: 2,
+                thinkTime: 1000,
+                mistakeRate: 0.15,  // 15%概率随机落子
+                searchRadius: 6     // 考虑周围6格内的位置
             },
             HARD: {
                 name: '困难',
-                depth: 6,
+                depth: 4,
                 thinkTime: 2000,
-                mistakeRate: 0
+                mistakeRate: 0,     // 不犯错
+                searchRadius: 15    // 全棋盘搜索
             }
         };
 
@@ -519,6 +522,9 @@
             document.getElementById('headerText').textContent = `${AI_LEVEL[currentDifficulty].name}难度 - 你执${playerColorText}${isFirstPlayer}`;
             document.getElementById('blackLabel').textContent = playerColor === 1 ? '(你)' : '(AI)';
             document.getElementById('whiteLabel').textContent = playerColor === 2 ? '(你)' : '(AI)';
+
+            // 记录游戏开始时间
+            window.gameStartTime = Date.now();
 
             initBoard();
             updateTurnDisplay();
@@ -609,13 +615,39 @@
 
         function calculateAIMove(level) {
             const emptyCells = [];
+
+            // 对于简单和中等模式，只考虑已有棋子周围的位置
+            const considerPosition = (index) => {
+                if (level.searchRadius >= 15) return true; // 困难模式考虑所有位置
+
+                const x = Math.floor(index / 15);
+                const y = index % 15;
+                const radius = level.searchRadius;
+
+                // 检查周围是否有棋子
+                for (let dx = -radius; dx <= radius; dx++) {
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx >= 0 && nx < 15 && ny >= 0 && ny < 15) {
+                            if (board[nx * 15 + ny] !== 0) return true;
+                        }
+                    }
+                }
+                return false;
+            };
+
             for (let i = 0; i < 225; i++) {
-                if (board[i] === 0) {
+                if (board[i] === 0 && considerPosition(i)) {
                     emptyCells.push(i);
                 }
             }
 
-            if (emptyCells.length === 0) return -1;
+            if (emptyCells.length === 0) {
+                // 如果没有找到合适位置，就返回中心位置
+                return 112; // 天元位置
+            }
 
             // 如果是简单模式，有一定概率随机落子
             if (level.mistakeRate > 0 && Math.random() < level.mistakeRate) {
@@ -632,7 +664,16 @@
 
                 const attackScore = evaluatePosition(x, y, aiColor);
                 const defenseScore = evaluatePosition(x, y, playerColor);
-                const score = attackScore + defenseScore * 1.2 + POSITION_WEIGHTS[x][y] * 0.1;
+
+                // 根据难度调整评分权重
+                let defenseWeight = 1.2;
+                if (level.name === '简单') {
+                    defenseWeight = 0.8; // 简单模式不太重视防守
+                } else if (level.name === '中等') {
+                    defenseWeight = 1.0; // 中等模式平衡攻守
+                }
+
+                const score = attackScore + defenseScore * defenseWeight + POSITION_WEIGHTS[x][y] * 0.1;
 
                 if (score > bestScore) {
                     bestScore = score;
@@ -787,9 +828,62 @@
             title.textContent = playerWon ? '恭喜获胜！' : '很遗憾，你输了';
             text.textContent = playerWon ? '你在' + AI_LEVEL[currentDifficulty].name + '模式下战胜了AI' : 'AI获得了胜利，再接再厉！';
 
+            // 保存游戏记录到数据库
+            saveGameRecord(winner);
+
             setTimeout(() => {
                 modal.classList.add('show');
             }, 500);
+        }
+
+        // 保存游戏记录
+        function saveGameRecord(winner) {
+            const userStr = localStorage.getItem('currentUser');
+            let userId = null;
+
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    // 兼容不同的字段名：user_id 或 id
+                    userId = user.user_id || user.id || null;
+                    console.log('用户ID:', userId, '用户信息:', user);
+                } catch (e) {
+                    console.error('解析用户信息失败:', e);
+                }
+            }
+
+            // 如果没有登录，提示用户先登录
+            if (!userId) {
+                console.warn('⚠️ 未登录，请先登录后再玩游戏');
+                alert('请先登录后再进行游戏，游戏记录需要登录后才能保存。');
+                return;
+            }
+
+            const gameStartTime = window.gameStartTime || (Date.now() - 60000); // 默认1分钟前
+            const duration = Math.floor((Date.now() - gameStartTime) / 1000);
+
+            fetch('/api/game/save-record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    gameMode: 'pve',
+                    winnerColor: winner, // 1=黑胜, 2=白胜
+                    moveCount: moveHistory.length,
+                    duration: duration,
+                    boardState: board.join(''),
+                    moves: JSON.stringify(moveHistory)
+                })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('✅ 游戏记录已保存');
+                } else {
+                    console.error('❌ 保存游戏记录失败:', data.message);
+                }
+            }).catch(error => {
+                console.error('❌ 保存游戏记录出错:', error);
+            });
         }
 
         function restartGame() {

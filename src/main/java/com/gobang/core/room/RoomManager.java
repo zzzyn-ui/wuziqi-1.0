@@ -262,6 +262,19 @@ public class RoomManager {
     }
 
     /**
+     * 获取在线玩家数量
+     */
+    public int getOnlinePlayerCount() {
+        try {
+            Set<String> onlineKeys = redisUtil.keys("user:online:*");
+            return onlineKeys != null ? onlineKeys.size() : 0;
+        } catch (Exception e) {
+            logger.debug("Failed to get online player count: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * 清理过期房间
      */
     private void startCleanupTask() {
@@ -311,7 +324,13 @@ public class RoomManager {
                 for (GameRoom room : timeoutRooms) {
                     Long timeoutPlayerId = room.getTimeoutPlayerId();
                     if (timeoutPlayerId != null) {
-                        logger.warn("Game timeout in room {}, player: {}", room.getRoomId(), timeoutPlayerId);
+                        Long winnerId = timeoutPlayerId.equals(room.getBlackPlayerId())
+                            ? room.getWhitePlayerId()
+                            : room.getBlackPlayerId();
+
+                        logger.info("=== 超时检查任务触发 === 房间: {}, 超时玩家: {}, 获胜者: {}, 当前玩家: {}",
+                            room.getRoomId(), timeoutPlayerId, winnerId, room.getCurrentPlayer());
+
                         if (timeoutCallback != null) {
                             timeoutCallback.onTimeout(room, timeoutPlayerId);
                         }

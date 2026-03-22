@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>好友 - 五子棋对战平台</title>
     <style>
         * {
@@ -265,6 +268,149 @@
             background: #c82333;
         }
 
+        /* 分组管理 */
+        .groups-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .group-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .group-item:hover {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .group-item.active {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+        }
+
+        .group-icon {
+            font-size: 20px;
+        }
+
+        .group-info {
+            flex: 1;
+        }
+
+        .group-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .group-count {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* 搜索输入框 */
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #ff6b35;
+        }
+
+        /* 小按钮 */
+        .btn-mini {
+            padding: 4px 10px;
+            font-size: 12px;
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-mini:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+        }
+
+        /* 表情包面板 */
+        .emoji-panel {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            padding: 12px;
+            z-index: 100;
+        }
+
+        .emoji-panel.show {
+            display: block;
+        }
+
+        .emoji-category {
+            margin-bottom: 8px;
+        }
+
+        .emoji-category-title {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 6px;
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+        }
+
+        .emoji-btn {
+            font-size: 20px;
+            padding: 4px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .emoji-btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.2);
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #ff6b35;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         /* 好友请求 */
         .requests-list {
             display: flex;
@@ -498,6 +644,138 @@
         @media (max-width: 768px) {
             .main-layout {
                 grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                margin-bottom: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .card-title {
+                font-size: 16px;
+            }
+
+            .input-group input,
+            .input-group textarea {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            .friend-item,
+            .request-item {
+                padding: 12px;
+            }
+
+            .friend-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .friend-name {
+                font-size: 14px;
+            }
+
+            .friend-status {
+                font-size: 12px;
+            }
+
+            .tab {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+
+            .chat-messages {
+                min-height: 250px;
+            }
+
+            .chat-input-area {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .chat-input-area input {
+                width: 100%;
+            }
+
+            .chat-input-area button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            .card-title {
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+
+            .btn-sm {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .friend-item,
+            .request-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .friend-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .request-actions {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+            }
+
+            .request-actions .btn {
+                flex: 1;
+            }
+
+            .chat-panel {
+                min-height: 400px;
+            }
+
+            .chat-messages {
+                min-height: 200px;
+                padding: 10px;
+            }
+
+            .chat-message {
+                max-width: 85%;
             }
         }
     </style>
@@ -552,8 +830,29 @@
 
                 <!-- 好友列表Tab -->
                 <div id="friendsTab" class="tab-content active">
+                    <!-- 分组管理 -->
+                    <div class="card">
+                        <div class="card-title">
+                            📁 分组管理
+                            <button class="btn-mini" onclick="showCreateGroupModal()">+ 新建分组</button>
+                        </div>
+                        <div id="groupsList" class="groups-list">
+                            <div class="group-item active" data-group-id="all" onclick="filterByGroup('all')">
+                                <div class="group-icon">📁</div>
+                                <div class="group-info">
+                                    <div class="group-name">全部好友</div>
+                                    <div class="group-count">0 人</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 好友列表 -->
                     <div class="card">
                         <div class="card-title">👥 我的好友 <span id="friendCount">(0)</span></div>
+                        <div class="friend-actions">
+                            <input type="text" class="search-input" id="friendSearchInput" placeholder="搜索好友..." oninput="searchFriends(this.value)">
+                        </div>
                         <div id="friendsList" class="friends-list">
                             <div class="empty-state">
                                 <div class="icon">👥</div>
@@ -593,7 +892,7 @@
 
                             <div class="chat-input-area">
                                 <input type="text" class="chat-input" id="chatInput" placeholder="输入消息..." onkeypress="if(event.key==='Enter')sendChatMessage()">
-                                <button class="btn btn-primary" onclick="sendChatMessage()">发送</button>
+                                <button class="btn btn-primary" id="sendMsgBtn" onclick="sendChatMessage()">发送</button>
                             </div>
                         </div>
                     </div>
@@ -603,150 +902,208 @@
     </div>
 
     <script>
+        // 立即输出调试信息
+        console.log('=== SCRIPT LOADED ===');
+        console.log('Page URL:', window.location.href);
+
         let ws = null;
         let currentChatFriend = null;
         let friends = [];
         let pendingRequests = [];
+        let notifiedRequestIds = new Set(); // 追踪已通知的请求ID
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 3;
+        let pollingInterval = null; // HTTP轮询定时器
+        let heartbeatInterval = null; // 心跳定时器
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
-            connectWebSocket();
+            console.log('=== DOMContentLoaded fired ===');
+            console.log('Current page URL:', window.location.href);
+
+            // 清除好友消息通知徽章（用户正在查看消息）
+            localStorage.setItem('friendsLastViewed', Date.now().toString());
+
+            // 使用HTTP轮询替代WebSocket
+            startHttpPolling();
         });
 
-        // WebSocket连接
-        function connectWebSocket() {
-            const token = localStorage.getItem('gobang_token');
-            // 动态构建WebSocket URL，支持部署到不同域名/端口
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const hostname = window.location.hostname;
-            const wsPort = '8083';;
-            const wsUrl = token
-                ? `${wsProtocol}//${wsHost}/ws?token=${token}`
-                : `${wsProtocol}//${wsHost}/ws`;
+        // HTTP轮询替代WebSocket
+        function startHttpPolling() {
+            console.log('=== Starting HTTP polling (WebSocket fallback) ===');
 
-            ws = new WebSocket(wsUrl);
-
-            ws.onopen = function() {
-                console.log('WebSocket connected');
-                // 请求好友列表
-                sendFriendListRequest();
-                // 获取待处理的好友请求
-                fetchPendingRequests();
-            };
-
-            ws.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    handleWebSocketMessage(data);
-                } catch (e) {
-                    console.error('Failed to parse message:', e);
-                }
-            };
-
-            ws.onclose = function() {
-                console.log('WebSocket disconnected, reconnecting in 3s...');
-                setTimeout(connectWebSocket, 3000);
-            };
-
-            ws.onerror = function(error) {
-                console.error('WebSocket error:', error);
-            };
-        }
-
-        // 发送消息
-        function sendMessage(type, body = {}, sequenceId = Date.now()) {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                const message = {
-                    type: type,
-                    sequence_id: sequenceId,
-                    timestamp: Date.now(),
-                    body: body
-                };
-                ws.send(JSON.stringify(message));
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
             }
-        }
-
-        // 处理WebSocket消息
-        function handleWebSocketMessage(data) {
-            const { type, body } = data;
-
-            switch(type) {
-                case 50: // FRIEND_REQUEST - 收到好友请求
-                    // 解析消息: "发送者名称|验证消息"
-                    let senderName = '用户';
-                    let message = '';
-                    if (body.message) {
-                        const parts = body.message.split('|');
-                        senderName = parts[0] || '用户';
-                        message = parts[1] || '想加你好友';
-                    }
-                    showToast(`收到 ${senderName} 的好友请求！`, 'success');
-                    // 重新获取待处理请求
-                    fetchPendingRequests();
-                    break;
-                case 51: // FRIEND_ACCEPT
-                    showToast('好友请求已接受', 'success');
-                    sendFriendListRequest();
-                    fetchPendingRequests();
-                    break;
-                case 52: // FRIEND_REJECT
-                    showToast('好友请求已拒绝', 'success');
-                    fetchPendingRequests();
-                    break;
-                case 53: // FRIEND_REMOVE
-                    showToast('好友已删除', 'success');
-                    sendFriendListRequest();
-                    fetchPendingRequests();
-                    break;
-                case 54: // FRIEND_LIST
-                    updateFriendsList(body.friends || []);
-                    break;
-                case 42: // CHAT_SYSTEM
-                    if (body.success === false) {
-                        showToast(body.message || '操作失败', 'error');
-                    }
-                    break;
-                case 41: // CHAT_RECEIVE
-                    handleChatReceive(body);
-                    break;
-                case 55: // FRIEND_ONLINE
-                    showToast(`${body.friend_name || '好友'} 上线了`, 'success');
-                    sendFriendListRequest();
-                    break;
-                case 56: // FRIEND_OFFLINE
-                    // 好友离线，刷新列表
-                    sendFriendListRequest();
-                    break;
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
             }
+
+            const token = getToken();
+            if (!token) {
+                console.error('No token found, cannot start polling');
+                return;
+            }
+
+            // 启动心跳（每30秒发送一次以维持在线状态）
+            heartbeatInterval = setInterval(() => {
+                fetch(`/api/heartbeat?token=${token}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(error => console.error('Heartbeat failed:', error));
+            }, 30000); // 每30秒发送一次心跳
+
+            pollingInterval = setInterval(() => {
+                // 检查待处理的好友请求
+                fetchPendingRequestsPoll();
+                // 刷新好友列表（实时同步好友添加/删除）
+                fetchFriendListPoll();
+            }, 5000); // 每5秒轮询一次（降低频率）
+
+            // 初始加载好友列表
+            fetchFriendListPoll();
         }
 
-        // 获取待处理的好友请求
-        function fetchPendingRequests() {
-            const token = localStorage.getItem('gobang_token');
-            if (!token) return;
+        // HTTP轮询：获取好友列表
+        function fetchFriendListPoll() {
+            const token = getToken();
+            if (!token) {
+                console.error('No token found');
+                return;
+            }
 
-            fetch('/api/friends/requests', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    updateRequestsList(data.requests || []);
-                }
-            })
-            .catch(err => {
-                console.error('Failed to fetch pending requests:', err);
+            fetch(`/api/friends/list?token=${token}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Friends list response:', data);
+                    // 后端返回格式: {success: true, friends: [...]}
+                    if (data.success && data.friends) {
+                        friends = data.friends;
+                        console.log('Updated friends list:', friends);
+                        displayFriendList();
+                    } else if (data.code === 200 && data.data && data.data.friends) {
+                        friends = data.data.friends;
+                        console.log('Updated friends list (old format):', friends);
+                        displayFriendList();
+                    }
+                })
+                .catch(error => console.error('Failed to fetch friends list:', error));
+        }
+
+        // HTTP轮询：检查待处理的好友请求
+        function fetchPendingRequestsPoll() {
+            const token = getToken();
+            if (!token) {
+                return;
+            }
+
+            fetch(`/api/friends/requests/pending?token=${token}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Pending requests response:', data);
+                    // 后端返回格式: {success: true, requests: [...]}
+                    if (data.success && data.requests) {
+                        pendingRequests = data.requests;
+                        displayPendingRequests();
+                        // 只对新请求显示通知
+                        data.requests.forEach(req => {
+                            if (!notifiedRequestIds.has(req.id)) {
+                                notifiedRequestIds.add(req.id);
+                                const senderName = req.senderName || '用户';
+                                showToast(`收到 ${senderName} 的好友请求！`, 'success');
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Failed to fetch pending requests:', error));
+        }
+
+        // 显示好友列表
+        function displayFriendList() {
+            const container = document.getElementById('friendsList');
+            if (!container) return;
+
+            document.getElementById('friendCount').textContent = `(${friends.length})`;
+
+            if (friends.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">👥</div>
+                        <p>暂无好友，快去添加吧</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            friends.forEach(friend => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'friend-item';
+                itemDiv.dataset.friendId = friend.id;
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'friend-avatar';
+                avatarDiv.textContent = friend.nickname ? friend.nickname.charAt(0).toUpperCase() : 'U';
+
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'friend-info';
+                infoDiv.style.flex = '1';
+
+                const displayName = friend.nickname || friend.username || '用户';
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'friend-name';
+                nameDiv.textContent = displayName;
+
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'friend-status';
+
+                const statusDot = document.createElement('span');
+                // 支持 online 和 isOnline 两种字段
+                const isOnline = friend.online || friend.isOnline || false;
+                statusDot.className = `status-dot ${isOnline ? 'online' : 'offline'}`;
+                statusDiv.appendChild(statusDot);
+                statusDiv.appendChild(document.createTextNode(isOnline ? '在线' : '离线'));
+
+                infoDiv.appendChild(nameDiv);
+                infoDiv.appendChild(statusDiv);
+                itemDiv.appendChild(avatarDiv);
+                itemDiv.appendChild(infoDiv);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'friend-actions';
+
+                const chatBtn = document.createElement('button');
+                chatBtn.className = 'btn btn-sm btn-outline';
+                chatBtn.textContent = '💬';
+                chatBtn.title = '私聊';
+                chatBtn.onclick = () => openChat(friend.id, displayName, isOnline);
+
+                // 删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm btn-danger';
+                deleteBtn.textContent = '删除';
+                deleteBtn.title = '删除好友';
+                deleteBtn.onclick = () => removeFriend(friend.id);
+                actionsDiv.appendChild(deleteBtn);
+
+                actionsDiv.appendChild(chatBtn);
+                itemDiv.appendChild(actionsDiv);
+
+                container.appendChild(itemDiv);
             });
         }
 
-        // 更新待处理请求列表
-        function updateRequestsList(requests) {
+        // 显示待处理的好友请求
+        function displayPendingRequests() {
             const container = document.getElementById('requestsList');
-            document.getElementById('requestCount').textContent = `(${requests.length})`;
+            if (!container) return;
 
-            if (requests.length === 0) {
+            document.getElementById('requestCount').textContent = `(${pendingRequests.length})`;
+
+            if (pendingRequests.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="icon">📭</div>
@@ -756,11 +1113,9 @@
                 return;
             }
 
-            // 清空容器
             container.innerHTML = '';
 
-            // 使用DOM方法而不是innerHTML，防止XSS攻击
-            requests.forEach(req => {
+            pendingRequests.forEach(req => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'request-item';
 
@@ -769,20 +1124,23 @@
 
                 const nameDiv = document.createElement('div');
                 nameDiv.className = 'request-name';
-                nameDiv.textContent = req.nickname || req.username || '用户';
+                // 后端返回 senderName 字段
+                nameDiv.textContent = req.senderName || req.nickname || req.username || '用户';
 
                 const timeDiv = document.createElement('div');
                 timeDiv.className = 'request-time';
-                timeDiv.textContent = new Date(req.created_at || Date.now()).toLocaleString();
+                // 后端返回 createdAt 字段
+                timeDiv.textContent = req.createdAt || req.created_at || new Date().toLocaleString();
 
                 infoDiv.appendChild(nameDiv);
                 infoDiv.appendChild(timeDiv);
                 itemDiv.appendChild(infoDiv);
 
-                if (req.request_message) {
+                // 后端返回 message 字段
+                if (req.message || req.request_message) {
                     const msgDiv = document.createElement('div');
                     msgDiv.className = 'request-message';
-                    msgDiv.textContent = `"${req.request_message}"`;
+                    msgDiv.textContent = `"${req.message || req.request_message}"`;
                     itemDiv.appendChild(msgDiv);
                 }
 
@@ -807,12 +1165,40 @@
             });
         }
 
-        // 请求好友列表
-        function sendFriendListRequest() {
-            sendMessage(54); // FRIEND_LIST
+        // ===== 以下WebSocket相关代码已弃用，改用HTTP轮询 =====
+        // 发送消息（已弃用 - 保留用于向后兼容）
+        function sendMessage(type, body = {}, sequenceId = Date.now()) {
+            console.log('=== sendMessage called (deprecated, using HTTP API) ===');
+            console.log('Type:', type, 'Body:', body);
+            // 所有WebSocket消息已改为HTTP API调用
+            showToast('请使用新的HTTP API', 'info');
         }
 
-        // 更新好友列表
+        // 处理WebSocket消息（已弃用）
+        function handleWebSocketMessage(data) {
+            console.log('=== handleWebSocketMessage (deprecated) ===');
+            // WebSocket消息处理已改为HTTP轮询
+        }
+
+        // 请求好友列表（已弃用）
+        function sendFriendListRequest() {
+            console.log('=== sendFriendListRequest (deprecated, using HTTP polling) ===');
+            // 好友列表现在通过HTTP轮询自动获取
+        }
+
+        // 获取待处理的好友请求（已弃用）
+        function fetchPendingRequests() {
+            console.log('=== fetchPendingRequests (deprecated, using HTTP polling) ===');
+            // 待处理请求现在通过HTTP轮询自动获取
+        }
+
+        // 请求好友列表（已弃用）
+        function sendFriendListRequest() {
+            console.log('=== sendFriendListRequest (deprecated, using HTTP polling) ===');
+            // 好友列表现在通过HTTP轮询自动获取
+        }
+
+        // 更新好友列表（已弃用 - 使用displayFriendList代替）
         function updateFriendsList(friendsList) {
             friends = friendsList;
             const container = document.getElementById('friendsList');
@@ -835,6 +1221,7 @@
             friendsList.forEach(friend => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'friend-item';
+                itemDiv.dataset.friendId = friend.user_id;
 
                 const avatarDiv = document.createElement('div');
                 avatarDiv.className = 'friend-avatar';
@@ -842,10 +1229,23 @@
 
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'friend-info';
+                infoDiv.style.flex = '1';
 
+                // 显示名称（如果有备注则显示备注）
+                const displayName = friend.remark || friend.nickname || friend.username;
                 const nameDiv = document.createElement('div');
                 nameDiv.className = 'friend-name';
-                nameDiv.textContent = friend.nickname || friend.username;
+                nameDiv.textContent = displayName;
+
+                // 如果有备注，显示原昵称
+                if (friend.remark && friend.nickname) {
+                    const originalNameSpan = document.createElement('span');
+                    originalNameSpan.style.fontSize = '12px';
+                    originalNameSpan.style.color = '#999';
+                    originalNameSpan.style.marginLeft = '8px';
+                    originalNameSpan.textContent = `(${friend.nickname})`;
+                    nameDiv.appendChild(originalNameSpan);
+                }
 
                 const statusDiv = document.createElement('div');
                 statusDiv.className = 'friend-status';
@@ -860,21 +1260,26 @@
                 itemDiv.appendChild(avatarDiv);
                 itemDiv.appendChild(infoDiv);
 
+                // 操作按钮
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'friend-actions';
 
+                // 聊天按钮
                 const chatBtn = document.createElement('button');
                 chatBtn.className = 'btn btn-sm btn-outline';
-                chatBtn.textContent = '聊天';
-                chatBtn.onclick = () => openChat(friend.user_id, friend.nickname || friend.username, friend.online);
+                chatBtn.textContent = '💬';
+                chatBtn.title = '私聊';
+                chatBtn.onclick = () => openChat(friend.id, displayName, friend.online);
 
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'btn btn-sm btn-danger';
-                removeBtn.textContent = '删除';
-                removeBtn.onclick = () => removeFriend(friend.user_id);
+                // 删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm btn-danger';
+                deleteBtn.textContent = '删除';
+                deleteBtn.title = '删除好友';
+                deleteBtn.onclick = () => removeFriend(friend.user_id);
 
                 actionsDiv.appendChild(chatBtn);
-                actionsDiv.appendChild(removeBtn);
+                actionsDiv.appendChild(deleteBtn);
                 itemDiv.appendChild(actionsDiv);
 
                 container.appendChild(itemDiv);
@@ -883,53 +1288,160 @@
 
         // 发送好友请求
         function sendFriendRequest() {
+            console.log('=== sendFriendRequest called ===');
             const target = document.getElementById('friendTarget').value.trim();
             const message = document.getElementById('friendMessage').value.trim();
+            console.log('Target:', target, 'Message:', message);
 
             if (!target) {
+                console.error('No target specified');
                 showToast('请输入对方用户名或ID', 'error');
                 return;
             }
 
-            sendMessage(50, { // FRIEND_REQUEST
-                target_id: target,
-                message: message || '想加你好友'
-            });
+            const token = getToken();
+            if (!token) {
+                showToast('请先登录', 'error');
+                return;
+            }
 
-            document.getElementById('friendTarget').value = '';
-            document.getElementById('friendMessage').value = '';
-            showToast('好友请求已发送', 'success');
+            console.log('Sending friend request via HTTP API');
+            fetch(`/api/friends/request?token=${encodeURIComponent(token)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    target_id: target,
+                    message: message || '想加你好友'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Friend request response:', data);
+                if (data.success || data.code === 200) {
+                    showToast('好友请求已发送', 'success');
+                    document.getElementById('friendTarget').value = '';
+                    document.getElementById('friendMessage').value = '';
+                } else {
+                    showToast(data.message || '发送失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to send friend request:', error);
+                showToast('发送失败，请重试', 'error');
+            });
         }
 
         // 删除好友
         function removeFriend(friendId) {
             if (!confirm('确定要删除这个好友吗？')) return;
 
-            sendMessage(53, { // FRIEND_REMOVE
-                friend_id: friendId
+            const token = getToken();
+            if (!token) {
+                showToast('请先登录', 'error');
+                return;
+            }
+
+            fetch(`/api/friends/${friendId}?token=${encodeURIComponent(token)}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Remove friend response:', data);
+                if (data.success || data.code === 200) {
+                    showToast('好友已删除', 'success');
+                    fetchFriendListPoll();
+                } else {
+                    showToast(data.message || '操作失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to remove friend:', error);
+                showToast('操作失败，请重试', 'error');
             });
-            showToast('好友已删除', 'success');
         }
 
         // 接受好友请求
         function acceptFriendRequest(requestId) {
-            sendMessage(51, { // FRIEND_ACCEPT
-                request_id: requestId
+            const token = getToken();
+            if (!token) {
+                showToast('请先登录', 'error');
+                return;
+            }
+
+            fetch(`/api/friends/accept?token=${encodeURIComponent(token)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    request_id: requestId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Accept friend request response:', data);
+                if (data.success || data.code === 200) {
+                    // 从已通知列表中移除
+                    notifiedRequestIds.delete(requestId);
+                    showToast('已接受好友请求', 'success');
+                    fetchFriendListPoll();
+                    fetchPendingRequestsPoll();
+                } else {
+                    showToast(data.message || '操作失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to accept friend request:', error);
+                showToast('操作失败，请重试', 'error');
             });
-            showToast('已接受好友请求', 'success');
         }
 
         // 拒绝好友请求
         function rejectFriendRequest(requestId) {
-            sendMessage(52, { // FRIEND_REJECT
-                request_id: requestId
+            const token = getToken();
+            if (!token) {
+                showToast('请先登录', 'error');
+                return;
+            }
+
+            fetch(`/api/friends/reject?token=${encodeURIComponent(token)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    request_id: requestId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Reject friend request response:', data);
+                if (data.success || data.code === 200) {
+                    // 从已通知列表中移除
+                    notifiedRequestIds.delete(requestId);
+                    showToast('已拒绝好友请求', 'success');
+                    fetchPendingRequestsPoll();
+                } else {
+                    showToast(data.message || '操作失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to reject friend request:', error);
+                showToast('操作失败，请重试', 'error');
             });
-            showToast('已拒绝好友请求', 'success');
         }
 
         // 打开私聊
         function openChat(userId, userName, isOnline) {
             currentChatFriend = { userId, userName, isOnline };
+
+            // 切换到聊天Tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('.tab:nth-child(2)').classList.add('active');
+            document.getElementById('chatTab').classList.add('active');
 
             document.getElementById('chatInterface').style.display = 'flex';
             document.getElementById('noChatSelected').style.display = 'none';
@@ -943,17 +1455,149 @@
             // 清空聊天记录
             const chatMessages = document.getElementById('chatMessages');
             chatMessages.innerHTML = '';
-            const startMsg = document.createElement('div');
-            startMsg.className = 'chat-message';
 
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-message-bubble';
-            bubble.style.background = '#e9ecef';
-            bubble.style.color = '#666';
-            bubble.textContent = `与 ${userName} 开始聊天`;
+            // 加载历史消息
+            loadChatMessages(userId);
 
-            startMsg.appendChild(bubble);
-            chatMessages.appendChild(startMsg);
+            // 开始轮询新消息
+            startChatPolling(userId);
+        }
+
+        // 加载聊天历史消息
+        function loadChatMessages(friendId) {
+            const token = getToken();
+            if (!token) return;
+
+            fetch(`/api/friends/${friendId}/messages?token=${encodeURIComponent(token)}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Chat messages response:', data);
+                    if (data.success && data.data && data.data.messages) {
+                        const messages = data.data.messages;
+                        const container = document.getElementById('chatMessages');
+                        container.innerHTML = '';
+
+                        if (messages.length === 0) {
+                            const startMsg = document.createElement('div');
+                            startMsg.className = 'chat-message';
+                            const bubble = document.createElement('div');
+                            bubble.className = 'chat-message-bubble';
+                            bubble.style.background = '#e9ecef';
+                            bubble.style.color = '#666';
+                            bubble.textContent = `与 ${currentChatFriend.userName} 开始聊天`;
+                            startMsg.appendChild(bubble);
+                            container.appendChild(startMsg);
+                        } else {
+                            messages.forEach(msg => {
+                                addChatMessage(msg.content, msg.senderId === getCurrentUserId(), msg.senderName, msg.id, msg.createdAt);
+                            });
+                        }
+
+                        // 滚动到底部
+                        container.scrollTop = container.scrollHeight;
+                    }
+                })
+                .catch(error => console.error('Failed to load chat messages:', error));
+        }
+
+        // 获取当前用户ID
+        function getCurrentUserId() {
+            const userStr = localStorage.getItem('currentUser');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                return user.user_id || user.id;
+            }
+            return null;
+        }
+
+        // 聊天消息轮询
+        let chatPollingInterval = null;
+
+        function startChatPolling(friendId) {
+            // 停止之前的轮询
+            if (chatPollingInterval) {
+                clearInterval(chatPollingInterval);
+            }
+
+            const token = getToken();
+            if (!token) return;
+
+            // 延迟启动轮询，避免与初始加载冲突
+            setTimeout(() => {
+                // 初始加载完成后，每5秒轮询一次新消息
+                chatPollingInterval = setInterval(() => {
+                    if (!currentChatFriend || currentChatFriend.userId !== friendId) {
+                        clearInterval(chatPollingInterval);
+                        return;
+                    }
+
+                    fetch(`/api/friends/${friendId}/messages?token=${encodeURIComponent(token)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.data && data.data.messages) {
+                                const messages = data.data.messages;
+                                const container = document.getElementById('chatMessages');
+
+                                // 只添加新消息
+                                const currentUserId = getCurrentUserId();
+                                console.log('Chat polling: currentUserId=', currentUserId, 'friendId=', friendId, 'messages=', messages);
+                                // 记录已存在的消息ID，用于去重
+                                const existingMsgIds = new Set();
+                                container.querySelectorAll('.chat-message[data-msg-id]').forEach(el => {
+                                    const id = el.dataset.msgId;
+                                    if (id && !id.startsWith('temp-')) {
+                                        existingMsgIds.add(id);
+                                    }
+                                });
+                                console.log('Existing message IDs:', Array.from(existingMsgIds));
+
+                                messages.forEach(msg => {
+                                    // 检查消息是否已经在界面中（通过消息ID或临时ID去重）
+                                    const isOwnMessage = msg.senderId === currentUserId;
+
+                                    // 检查是否已存在（通过ID或内容+发送者组合）
+                                    const alreadyExists = existingMsgIds.has(String(msg.id));
+
+                                    if (!alreadyExists) {
+                                        // 如果找不到，检查是否有临时ID的消息（乐观更新的消息）
+                                        if (isOwnMessage) {
+                                            // 查找最近添加的临时消息（通过内容匹配）
+                                            const tempMsgs = container.querySelectorAll('.chat-message.self[data-msg-id^="temp-"]');
+                                            for (const tempMsg of tempMsgs) {
+                                                const bubble = tempMsg.querySelector('.chat-message-bubble');
+                                                if (bubble && bubble.textContent === msg.content) {
+                                                    // 更新为真实的消息ID
+                                                    tempMsg.dataset.msgId = msg.id;
+                                                    console.log('Updated temp message to real ID:', msg.id);
+                                                    existingMsgIds.add(String(msg.id));
+                                                    // 从跟踪集合中移除
+                                                    optimisticallyAddedMessages.delete(tempMsg.dataset.msgId);
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        // 如果还是没有找到，添加新消息
+                                        if (!existingMsgIds.has(String(msg.id))) {
+                                            console.log('Adding message: senderId=', msg.senderId, 'isSelf=', isOwnMessage, 'id=', msg.id);
+                                            addChatMessage(msg.content, isOwnMessage, msg.senderName, msg.id, msg.createdAt);
+                                            existingMsgIds.add(String(msg.id));
+                                        }
+                                    } else {
+                                        console.log('Skipping duplicate message: id=', msg.id);
+                                    }
+                                });
+
+                                // 滚动到底部（如果用户已经在底部）
+                                const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+                                if (isAtBottom) {
+                                    container.scrollTop = container.scrollHeight;
+                                }
+                            }
+                        })
+                        .catch(error => console.error('Failed to poll chat messages:', error));
+                }, 5000); // 每5秒轮询一次
+            }, 3000); // 延迟3秒后启动轮询
         }
 
         // 关闭私聊
@@ -964,30 +1608,100 @@
             document.getElementById('chatPanel').classList.remove('active');
         }
 
+        // 防止重复发送
+        let isSending = false;
+        // 记录通过乐观更新添加的消息（用于去重）key: content+timestamp
+        const optimisticallyAddedMessages = new Set();
+
         // 发送私聊消息
         function sendChatMessage() {
+            // 防止重复发送
+            if (isSending) {
+                showToast('正在发送中，请稍候...', 'info');
+                return;
+            }
+
             const input = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('sendMsgBtn');
             const content = input.value.trim();
 
             if (!content || !currentChatFriend) return;
 
-            // 添加到界面
-            addChatMessage(content, true);
+            const token = getToken();
+            if (!token) {
+                showToast('请先登录', 'error');
+                return;
+            }
 
-            // 发送
-            sendMessage(40, { // CHAT_SEND
-                target_id: currentChatFriend.userId,
-                content: content
+            const currentUserId = getCurrentUserId();
+            const timestamp = Date.now();
+
+            // 立即禁用发送状态
+            isSending = true;
+
+            // 禁用发送按钮
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.style.opacity = '0.6';
+                sendBtn.textContent = '发送中...';
+            }
+
+            // 生成临时ID用于跟踪
+            const tempId = `temp-${currentUserId}-${timestamp}`;
+            // 记录这条消息
+            optimisticallyAddedMessages.add(tempId);
+
+            // 立即显示自己发送的消息（乐观更新），使用临时ID
+            addChatMessage(content, true, null, tempId);
+
+            // 通过HTTP API发送
+            fetch(`/api/friends/${currentChatFriend.userId}/messages?token=${encodeURIComponent(token)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    content: content
+                })
+            })
+            .then(response => {
+                console.log('Send response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Send response data:', data);
+                if (!data.success) {
+                    showToast(data.message || '发送失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to send message:', error);
+                showToast('发送失败，请重试', 'error');
+            })
+            .finally(() => {
+                console.log('Finally: resetting send button');
+                // 重置发送状态
+                isSending = false;
+
+                // 恢复发送按钮
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.style.opacity = '1';
+                    sendBtn.textContent = '发送';
+                }
             });
 
             input.value = '';
         }
 
         // 添加聊天消息到界面
-        function addChatMessage(content, isSelf = false) {
+        function addChatMessage(content, isSelf = false, senderName = null, msgId = null, msgTimestamp = null) {
             const container = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${isSelf ? 'self' : 'other'}`;
+            if (msgId) {
+                messageDiv.dataset.msgId = msgId;
+            }
 
             // 创建气泡，使用textContent安全地设置内容
             const bubble = document.createElement('div');
@@ -996,7 +1710,34 @@
 
             const time = document.createElement('div');
             time.className = 'chat-message-time';
-            time.textContent = new Date().toLocaleTimeString();
+            // 如果有服务器时间，使用服务器时间，否则使用当前时间
+            if (msgTimestamp) {
+                // 解析服务器时间 (格式: 2026-03-19T21:57:13)
+                const date = new Date(msgTimestamp);
+                // 检查日期是否有效
+                if (!isNaN(date.getTime())) {
+                    // 如果是今天，只显示时间，否则显示日期+时间
+                    const today = new Date();
+                    const isToday = date.getDate() === today.getDate() &&
+                                  date.getMonth() === today.getMonth() &&
+                                  date.getFullYear() === today.getFullYear();
+
+                    if (isToday) {
+                        time.textContent = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        time.textContent = date.toLocaleString('zh-CN', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                } else {
+                    time.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                }
+            } else {
+                time.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            }
 
             messageDiv.appendChild(bubble);
             messageDiv.appendChild(time);
@@ -1007,7 +1748,7 @@
         // 处理接收到的私聊消息
         function handleChatReceive(body) {
             if (currentChatFriend && body.sender_id === currentChatFriend.userId) {
-                addChatMessage(body.content, false);
+                addChatMessage(body.content, false, body.sender_name, body.id, body.created_at);
             } else {
                 showToast(`${body.sender_name || '好友'}发来一条消息`, 'success');
             }
@@ -1027,6 +1768,11 @@
             }
         }
 
+        // 获取token（支持 token 和 authToken 两种 key）
+        function getToken() {
+            return localStorage.getItem('token') || localStorage.getItem('authToken');
+        }
+
         // Toast提示
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
@@ -1037,6 +1783,84 @@
             setTimeout(() => {
                 toast.remove();
             }, 3000);
+        }
+
+        // ========== 新增功能函数 ==========
+
+        // 分组管理
+        function showCreateGroupModal() {
+            const groupName = prompt('请输入分组名称：');
+            if (groupName && groupName.trim()) {
+                createGroup(groupName.trim());
+            }
+        }
+
+        function createGroup(groupName) {
+            sendMessage(58, { // FRIEND_GROUP_CREATE
+                action: 'create',
+                group_name: groupName
+            });
+        }
+
+        function filterByGroup(groupId) {
+            // 更新分组选中状态
+            document.querySelectorAll('.group-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-group-id="${groupId}"]`).classList.add('active');
+
+            // 过滤好友列表
+            if (groupId === 'all') {
+                updateFriendsList(friends);
+            } else {
+                const filteredFriends = friends.filter(f => f.group_id === parseInt(groupId));
+                updateFriendsList(filteredFriends);
+            }
+        }
+
+        function updateGroupsList(groups) {
+            const container = document.getElementById('groupsList');
+            if (!container) return;
+
+            // 保留"全部好友"选项
+            let html = container.innerHTML;
+
+            // 添加分组
+            groups.forEach(group => {
+                html += `
+                    <div class="group-item" data-group-id="${group.id}" onclick="filterByGroup('${group.id}')">
+                        <div class="group-icon">📁</div>
+                        <div class="group-info">
+                            <div class="group-name">${escapeHtml(group.group_name)}</div>
+                            <div class="group-count">0 人</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 搜索好友
+        function searchFriends(keyword) {
+            if (!keyword.trim()) {
+                updateFriendsList(friends);
+                return;
+            }
+
+            const filtered = friends.filter(f =>
+                (f.nickname && f.nickname.toLowerCase().includes(keyword.toLowerCase())) ||
+                (f.username && f.username.toLowerCase().includes(keyword.toLowerCase())) ||
+                (f.remark && f.remark.toLowerCase().includes(keyword.toLowerCase()))
+            );
+            updateFriendsList(filtered);
+        }
+
+        // HTML转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>

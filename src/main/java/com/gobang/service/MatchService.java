@@ -47,6 +47,9 @@ public class MatchService {
     /** 玩家索引 - 快速查找 userId -> MatchPlayer */
     private final Map<Long, MatchPlayer> playerIndex = new ConcurrentHashMap<>();
 
+    /** 最近对手记录 - userId -> 上一个对手的userId（避免连续匹配相同对手）*/
+    private final Map<Long, Long> lastOpponents = new ConcurrentHashMap<>();
+
     // ==================== 统计信息 ====================
     private final AtomicLong totalMatches = new AtomicLong(0);
     private final AtomicLong totalTimeouts = new AtomicLong(0);
@@ -133,6 +136,24 @@ public class MatchService {
         if (roomManager.getRoomByUserId(userId) != null) {
             return MatchResult.error("您已在游戏中，请先结束当前对局");
         }
+
+        // 清除之前的对手记录（换桌功能）
+        // 不仅清除自己的记录，还要清除指向自己的记录
+        lastOpponents.remove(userId);
+
+        // 查找并清除指向当前用户的记录
+        Iterator<Map.Entry<Long, Long>> iter = lastOpponents.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Long, Long> entry = iter.next();
+            if (entry.getValue().equals(userId)) {
+                iter.remove();
+                logger.info("清除对手 {} 指向用户 {} 的记录", entry.getKey(), userId);
+            }
+        }
+
+        logger.info("用户 {} 开始匹配，已清除所有相关的对手记录", userId);
+
+        logger.info("开始匹配 - 用户: {}, 上一个对手已清除", userId);
 
         // 创建匹配玩家
         MatchPlayer player = new MatchPlayer(
@@ -250,8 +271,8 @@ public class MatchService {
                         continue;
                     }
 
-                    // 检查是否可以匹配
-                    if (p1.canMatch(p2, allowedDiff)) {
+                    // 检查是否可以匹配（包括检查是否是上一个对手）
+                    if (p1.canMatch(p2, allowedDiff, lastOpponents)) {
                         // 执行匹配
                         if (doMatch(p1, p2)) {
                             matched.add(p1);
@@ -277,6 +298,10 @@ public class MatchService {
             matchQueue.remove(p2);
             playerIndex.remove(p1.getUserId());
             playerIndex.remove(p2.getUserId());
+
+            // 记录对手关系（避免下次匹配到相同对手）
+            lastOpponents.put(p1.getUserId(), p2.getUserId());
+            lastOpponents.put(p2.getUserId(), p1.getUserId());
 
             // 生成房间ID
             String roomId = generateRoomId();
@@ -545,8 +570,22 @@ public class MatchService {
             return System.currentTimeMillis() - enqueueTime > maxMillis;
         }
 
-        public boolean canMatch(MatchPlayer other, int maxDiff) {
+        public boolean canMatch(MatchPlayer other, int maxDiff, Map<Long, Long> lastOpponents) {
             if (!this.isActive() || !other.isActive()) {
+                return false;
+            }
+            // 检查是否是上一个对手（避免连续匹配相同对手）
+            Long myLastOpponent = lastOpponents.get(this.userId);
+            Long otherLastOpponent = lastOpponents.get(other.userId);
+
+            // 调试日志
+            if (myLastOpponent != null || otherLastOpponent != null) {
+                logger.info("检查对手匹配 - 我方ID: {}, 上一个对手: {}, 对方ID: {}, 对方上一个对手: {}",
+                    this.userId, myLastOpponent, other.userId, otherLastOpponent);
+            }
+
+            if (this.userId.equals(otherLastOpponent) || other.userId.equals(myLastOpponent)) {
+                logger.info("跳过匹配 - 上一个对手，我方ID: {}, 对方ID: {}", this.userId, other.userId);
                 return false;
             }
             return Math.abs(this.rating - other.rating) <= maxDiff;

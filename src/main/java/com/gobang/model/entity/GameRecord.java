@@ -24,9 +24,18 @@ public class GameRecord {
     private Integer whiteRatingChange;
     private String boardState;
     private String moves;
+    private String gameMode; // pve(人机), pvp_online(在线对战), pvp_local(本地对战)
     private LocalDateTime createdAt;
 
     public GameRecord() {
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
     }
 
     // Getters and Setters

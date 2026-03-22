@@ -7,15 +7,30 @@ const AppConfig = {
     /**
      * 获取WebSocket URL
      * 动态根据当前页面协议和主机生成WebSocket连接地址
+     * 支持本地开发和ngrok穿透
      * @param {string} token - 可选的认证token
      * @returns {string} WebSocket URL
      */
     getWebSocketUrl: function(token) {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.hostname;
-        const port = '9090'; // WebSocket 端口
         const path = '/ws';
-        let url = `${protocol}//${host}:${port}${path}`;
+
+        // 检测是否使用ngrok
+        const isNgrok = host.includes('ngrok') || host.includes('ngrok-free') || host.includes('ngrok.io');
+        const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+
+        let url;
+        if (isNgrok) {
+            // 使用ngrok时，WebSocket使用与页面相同的端口和域名
+            url = `${protocol}//${window.location.host}${path}`;
+        } else if (isLocalhost) {
+            // 本地开发时使用8083端口
+            url = `${protocol}//${host}:8083${path}`;
+        } else {
+            // 其他情况使用当前页面的端口
+            url = `${protocol}//${window.location.host}${path}`;
+        }
 
         // 如果提供了token，将其作为查询参数
         if (token) {
@@ -44,7 +59,7 @@ const AppConfig = {
         try {
             return JSON.parse(userStr);
         } catch (e) {
-            console.error('Failed to parse currentUser:', e);
+            // 静默处理解析错误
             return null;
         }
     },

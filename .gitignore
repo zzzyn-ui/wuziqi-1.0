@@ -8,15 +8,20 @@ target/
 *.class
 *.jar
 *.war
+dependency-reduced-pom.xml
 
 # 日志文件
 logs/
 *.log
+server_*.log
 
 # IDE 相关
 .idea/
 *.iml
 .vscode/
+.settings/
+.project/
+.classpath
 *.swp
 *.swo
 *~
@@ -29,6 +34,35 @@ Thumbs.db
 *.tmp
 *.bak
 *.cache
+dump.rdb
+nul
 __pycache__/
-nul_backup.txt
-__pycache__/
+
+# 部署相关
+deploy.ps1
+cleanup.ps1
+
+# 测试临时文件
+Check*.java
+Create*.java
+Test*.java
+Update*.java
+Verify*.java
+Reset*.java
+fix-*.js
+check-*.js
+generate-*.js
+decode-*.js
+puzzle_*.sql
+puzzle_*.json
+reset-*.bat
+clear_*.sql
+
+# Node modules (如果有前端开发)
+node_modules/
+package-lock.json
+
+# 备份文件
+*.backup
+*_backup.*
+

@@ -36,6 +36,12 @@ public class GameRoom {
     private Channel blackChannel;
     private Channel whiteChannel;
 
+    // 房间创建者信息（用于等待玩家加入）
+    private Long creatorId;
+    private String creatorNickname;
+    private String creatorUsername;
+    private Channel creatorChannel;
+
     // 观战者
     private final CopyOnWriteArraySet<Observer> observers = new CopyOnWriteArraySet<>();
 
@@ -49,7 +55,10 @@ public class GameRoom {
 
     // 游戏开始时间
     private long gameStartTime = 0;
-    private long moveTimeoutMillis = 300000; // 默认5分钟超时
+    private long moveTimeoutMillis = 120000; // 单次思考超时2分钟
+    private long totalThinkTimeMillis = 300000; // 每方总思考时间5分钟
+    private long blackPlayerRemainingTime = 300000; // 黑方剩余时间
+    private long whitePlayerRemainingTime = 300000; // 白方剩余时间
     private volatile boolean undoRequested = false; // 是否有悔棋请求
     private Long undoRequesterId = null; // 悔棋请求者
     private String gameMode = "competitive"; // 游戏模式: "casual"=休闲, "competitive"=竞技
@@ -121,6 +130,13 @@ public class GameRoom {
     }
 
     /**
+     * 获取观战者列表
+     */
+    public List<Observer> getObservers() {
+        return new ArrayList<>(observers);
+    }
+
+    /**
      * 开始游戏
      */
     public void startGame(Long blackId, Channel blackCh, Long whiteId, Channel whiteCh) {
@@ -134,6 +150,10 @@ public class GameRoom {
         this.lastMoveTime = gameStartTime;
         this.lastMovePlayerId = null;
         this.lastMoveColor = 0;
+
+        // 初始化双方剩余时间
+        this.blackPlayerRemainingTime = totalThinkTimeMillis;
+        this.whitePlayerRemainingTime = totalThinkTimeMillis;
 
         logger.info("Game started in room {}: black={}, white={}", roomId, blackId, whiteId);
     }
@@ -149,7 +169,7 @@ public class GameRoom {
     /**
      * 落子
      *
-     * @return 0=成功, 1=位置无效, 2=不是你的回合, 3=游戏已结束, 4=位置已有棋子
+     * @return 0=成功, 1=位置无效, 2=不是你的回合, 3=游戏已结束, 4=位置已有棋子, 5=思考时间用完
      */
     public synchronized int makeMove(Long userId, int x, int y) {
         if (gameState != GameState.PLAYING) {
@@ -161,8 +181,38 @@ public class GameRoom {
             return 2;
         }
 
+        // 检查思考时间是否用完
+        if (playerColor == Board.BLACK && blackPlayerRemainingTime <= 0) {
+            gameState = GameState.FINISHED;
+            logger.info("Black player time out in room {}", roomId);
+            return 5;
+        }
+        if (playerColor == Board.WHITE && whitePlayerRemainingTime <= 0) {
+            gameState = GameState.FINISHED;
+            logger.info("White player time out in room {}", roomId);
+            return 5;
+        }
+
         if (!board.place(x, y, playerColor)) {
             return board.isEmpty(x, y) ? 4 : 1;
+        }
+
+        // 计算思考时间并从总时间中扣除
+        long thinkTime = lastMoveTime > 0 ? System.currentTimeMillis() - lastMoveTime : 0;
+        // 第一手棋不计时间
+        if (moves.isEmpty()) {
+            thinkTime = 0;
+        }
+
+        // 扣除当前玩家的思考时间
+        if (playerColor == Board.BLACK) {
+            blackPlayerRemainingTime -= thinkTime;
+            if (blackPlayerRemainingTime < 0) blackPlayerRemainingTime = 0;
+            logger.debug("Black player remaining time: {}ms", blackPlayerRemainingTime);
+        } else {
+            whitePlayerRemainingTime -= thinkTime;
+            if (whitePlayerRemainingTime < 0) whitePlayerRemainingTime = 0;
+            logger.debug("White player remaining time: {}ms", whitePlayerRemainingTime);
         }
 
         moves.add(new int[]{x, y, playerColor});
@@ -230,15 +280,22 @@ public class GameRoom {
      * @return null=失败, otherwise 返回被撤销的落子信息
      */
     public synchronized int[] respondUndo(Long userId, boolean accept) {
+        logger.info("=== GameRoom.respondUndo === roomId: {}, userId: {}, accept: {}, undoRequested: {}, undoRequesterId: {}",
+            roomId, userId, accept, undoRequested, undoRequesterId);
+
         if (!undoRequested) {
+            logger.warn("respondUndo - 没有悔棋请求");
             return null;
         }
 
-        // 只有对手可以响应
-        Long opponentId = userId.equals(blackPlayerId) ? whitePlayerId : blackPlayerId;
-        if (!userId.equals(opponentId)) {
+        // 只有对手可以响应悔棋请求（请求者自己不能响应）
+        if (userId.equals(undoRequesterId)) {
+            logger.warn("respondUndo - 悔棋请求者不能响应自己的请求: userId={}, undoRequesterId={}", userId, undoRequesterId);
             return null;
         }
+
+        logger.info("respondUndo - 黑方: {}, 白方: {}, 当前用户: {}, 请求者: {}",
+            blackPlayerId, whitePlayerId, userId, undoRequesterId);
 
         if (accept && !moves.isEmpty()) {
             // 执行悔棋
@@ -250,7 +307,8 @@ public class GameRoom {
             undoRequested = false;
             undoRequesterId = null;
 
-            logger.info("Undo accepted in room {}, removed move at ({}, {})", roomId, lastMove[0], lastMove[1]);
+            logger.info("Undo accepted in room {}, removed move at ({}, {}), 剩余棋子: {}",
+                roomId, lastMove[0], lastMove[1], moves.size());
             return lastMove;
         } else {
             // 拒绝悔棋
@@ -320,6 +378,7 @@ public class GameRoom {
         record.setWhiteRatingChange(whiteRatingChange);
         record.setBoardState(compressBoard(board.toArray()));
         record.setMoves(gson.toJson(moves));
+        record.setGameMode(gameMode); // 设置游戏模式
         record.setCreatedAt(LocalDateTime.now());
         return record;
     }
@@ -395,8 +454,24 @@ public class GameRoom {
         return blackChannel;
     }
 
+    public void setBlackChannel(Channel channel) {
+        this.blackChannel = channel;
+    }
+
     public Channel getWhiteChannel() {
         return whiteChannel;
+    }
+
+    public void setWhiteChannel(Channel channel) {
+        this.whiteChannel = channel;
+    }
+
+    public long getBlackPlayerRemainingTime() {
+        return blackPlayerRemainingTime;
+    }
+
+    public long getWhitePlayerRemainingTime() {
+        return whitePlayerRemainingTime;
     }
 
     public int getCurrentPlayer() {
@@ -428,6 +503,43 @@ public class GameRoom {
     }
 
     /**
+     * 设置房间创建者信息
+     */
+    public void setCreator(Long userId, String nickname, String username, Channel channel) {
+        this.creatorId = userId;
+        this.creatorNickname = nickname;
+        this.creatorUsername = username;
+        this.creatorChannel = channel;
+        logger.info("Room {} creator set: {} ({})", roomId, nickname, userId);
+    }
+
+    /**
+     * 获取房间创建者信息
+     */
+    public Long getCreatorId() {
+        return creatorId;
+    }
+
+    public String getCreatorNickname() {
+        return creatorNickname;
+    }
+
+    public String getCreatorUsername() {
+        return creatorUsername;
+    }
+
+    public Channel getCreatorChannel() {
+        return creatorChannel;
+    }
+
+    /**
+     * 检查是否有创建者
+     */
+    public boolean hasCreator() {
+        return creatorId != null;
+    }
+
+    /**
      * 更新玩家通道（用于重连）
      */
     public void updatePlayerChannel(Long userId, Channel newChannel) {
@@ -441,19 +553,175 @@ public class GameRoom {
     }
 
     /**
+     * 重置游戏（用于再来一局）
+     */
+    public synchronized void resetGame() {
+        this.board.reset();
+        this.moves.clear();
+        this.gameState = GameState.WAITING;
+        this.currentPlayer = Board.BLACK;
+        this.moveCount = 0;
+        this.lastMoveTime = 0;
+        this.lastMovePlayerId = null;
+        this.lastMoveColor = 0;
+        this.undoRequested = false;
+        this.undoRequesterId = null;
+        logger.info("Game reset in room {}", roomId);
+    }
+
+    /**
+     * 开始游戏（重置后重新开始）
+     */
+    public synchronized void restartGame() {
+        this.board.reset();
+        this.moves.clear();
+        this.gameState = GameState.PLAYING;
+        this.currentPlayer = Board.BLACK;
+        this.moveCount = 0;
+        this.lastMoveTime = System.currentTimeMillis();
+        this.lastMovePlayerId = null;
+        this.lastMoveColor = 0;
+        this.undoRequested = false;
+        this.undoRequesterId = null;
+        // 重置双方剩余时间
+        this.blackPlayerRemainingTime = totalThinkTimeMillis;
+        this.whitePlayerRemainingTime = totalThinkTimeMillis;
+        logger.info("Game restarted in room {}", roomId);
+    }
+
+    /**
+     * 检查是否超时
+     * 规则：单次思考超过2分钟判负，或总时间用完判负
+     * @return 超时的玩家ID，如果没有超时返回null
+     */
+    public synchronized Long checkTimeout() {
+        if (gameState != GameState.PLAYING) {
+            return null;
+        }
+
+        // 计算从最后一次落子到现在经过的时间
+        long timeSinceLastMove = lastMoveTime > 0 ? System.currentTimeMillis() - lastMoveTime : 0;
+
+        // 首先检查单次思考时间是否超过2分钟（120秒）
+        if (timeSinceLastMove > moveTimeoutMillis) {
+            gameState = GameState.FINISHED;
+            Long timeoutPlayerId = currentPlayer == Board.BLACK ? blackPlayerId : whitePlayerId;
+            String timeoutPlayerColor = currentPlayer == Board.BLACK ? "黑方" : "白方";
+            Long winnerId = currentPlayer == Board.BLACK ? whitePlayerId : blackPlayerId;
+            String winnerColor = currentPlayer == Board.BLACK ? "白方" : "黑方";
+
+            logger.info("=== 单步思考超时 === 房间: {}, 当前玩家: {}, 超时玩家ID: {}, 超时玩家颜色: {}, " +
+                    "经过时间: {}ms, 限制: {}ms, 获胜者ID: {}, 获胜者颜色: {}",
+                roomId, currentPlayer, timeoutPlayerId, timeoutPlayerColor,
+                timeSinceLastMove, moveTimeoutMillis, winnerId, winnerColor);
+
+            // 返回当前应该落子的玩家ID（判负）
+            return timeoutPlayerId;
+        }
+
+        // 检查当前玩家的时间是否用完（需要加上经过的时间）
+        long currentBlackRemaining = blackPlayerRemainingTime - (currentPlayer == Board.BLACK ? timeSinceLastMove : 0);
+        long currentWhiteRemaining = whitePlayerRemainingTime - (currentPlayer == Board.WHITE ? timeSinceLastMove : 0);
+
+        if (currentPlayer == Board.BLACK && currentBlackRemaining <= 0) {
+            gameState = GameState.FINISHED;
+            blackPlayerRemainingTime = 0;
+            logger.info("=== 总时间用完超时 === 房间: {}, 黑方总时间用完, 剩余: {}ms, 白方获胜",
+                roomId, currentBlackRemaining);
+            return blackPlayerId;
+        }
+        if (currentPlayer == Board.WHITE && currentWhiteRemaining <= 0) {
+            gameState = GameState.FINISHED;
+            whitePlayerRemainingTime = 0;
+            logger.info("=== 总时间用完超时 === 房间: {}, 白方总时间用完, 剩余: {}ms, 黑方获胜",
+                roomId, currentWhiteRemaining);
+            return whitePlayerId;
+        }
+
+        return null;
+    }
+
+    /**
+     * 获取剩余时间（毫秒）
+     * 返回当前应该落子的玩家的剩余总思考时间
+     */
+    public synchronized long getRemainingTime() {
+        if (gameState != GameState.PLAYING) {
+            return 0;
+        }
+
+        // 返回当前应该落子的玩家的剩余时间
+        long remainingTime = (currentPlayer == Board.BLACK) ? blackPlayerRemainingTime : whitePlayerRemainingTime;
+        return Math.max(0, remainingTime);
+    }
+
+    /**
      * 观战者信息
      */
     public static class Observer {
-        final Long userId;
-        final String username;
-        final String nickname;
-        final Channel channel;
+        private final Long userId;
+        private final String username;
+        private final String nickname;
+        private final Channel channel;
 
         public Observer(Long userId, String username, String nickname, Channel channel) {
             this.userId = userId;
             this.username = username;
             this.nickname = nickname;
             this.channel = channel;
+        }
+
+        public Long getUserId() {
+            return userId;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public String getNickname() {
+            return nickname;
+        }
+
+        public Channel getChannel() {
+            return channel;
+        }
+    }
+
+    /**
+     * 序列化游戏状态为JSON（用于保存到Redis）
+     */
+    public String serializeGameState() {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, Object> state = new java.util.HashMap<>();
+
+            state.put("roomId", roomId);
+            state.put("gameState", gameState.name());
+            state.put("gameMode", gameMode);
+            state.put("currentPlayer", currentPlayer);
+            state.put("blackPlayerId", blackPlayerId);
+            state.put("whitePlayerId", whitePlayerId);
+            state.put("blackPlayerRemainingTime", blackPlayerRemainingTime);
+            state.put("whitePlayerRemainingTime", whitePlayerRemainingTime);
+            state.put("moveCount", moveCount);
+            state.put("gameStartTime", gameStartTime);
+            state.put("lastMoveTime", lastMoveTime);
+            state.put("lastMovePlayerId", lastMovePlayerId);
+            state.put("lastMoveColor", lastMoveColor);
+            state.put("totalThinkTimeMillis", totalThinkTimeMillis);
+
+            // 序列化棋盘
+            state.put("board", board.toArray());
+
+            // 序列化落子记录
+            java.util.List<int[]> movesList = new java.util.ArrayList<>(moves);
+            state.put("moves", movesList);
+
+            return mapper.writeValueAsString(state);
+        } catch (Exception e) {
+            logger.error("Failed to serialize game state for room {}", roomId, e);
+            return null;
         }
     }
 }

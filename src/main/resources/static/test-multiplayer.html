@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多用户测试页面 - 五子棋</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #4a9eff;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .user-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        .user-panel.player1 { border-color: #333; }
+        .user-panel.player2 { border-color: #fff; }
+        .user-panel.spectator { border-color: #4a9eff; }
+
+        .user-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .player1 .user-title { background: #333; color: #fff; }
+        .player2 .user-title { background: #fff; color: #000; }
+        .spectator .user-title { background: #4a9eff; color: #fff; }
+
+        .status {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            background: rgba(0,0,0,0.3);
+        }
+        .status.connected { background: #28a745; }
+        .status.disconnected { background: #dc3545; }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .btn {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            background: #4a9eff;
+            color: white;
+        }
+        .btn:hover { background: #357abd; }
+        .btn:disabled { background: #555; cursor: not-allowed; }
+        .btn-success { background: #28a745; }
+        .btn-danger { background: #dc3545; }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            gap: 1px;
+            background: #dcb35c;
+            padding: 5px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .cell {
+            aspect-ratio: 1;
+            background: #dcb35c;
+            cursor: pointer;
+            position: relative;
+        }
+        .cell:hover { background: #c4a835; }
+        .cell.black::after {
+            content: '';
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            background: #000;
+            border-radius: 50%;
+            top: 10%;
+            left: 10%;
+        }
+        .cell.white::after {
+            content: '';
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            background: #fff;
+            border-radius: 50%;
+            top: 10%;
+            left: 10%;
+        }
+        .cell.last-move::before {
+            content: '';
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            background: #ff0;
+            border-radius: 50%;
+            top: 35%;
+            left: 35%;
+            z-index: 1;
+        }
+
+        .info {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        .info div { margin: 3px 0; }
+
+        .log {
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+            padding: 10px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 10px;
+        }
+        .log-entry { margin: 2px 0; }
+        .log-info { color: #4a9eff; }
+        .log-error { color: #ff6b6b; }
+        .log-success { color: #51cf66; }
+
+        .input-group {
+            margin: 10px 0;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: rgba(0,0,0,0.3);
+            color: #eee;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 多用户测试页面</h1>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button class="btn btn-success" onclick="startTest()">🚀 开始测试：自动创建游戏</button>
+        <button class="btn btn-danger" onclick="resetAll()">🔄 重置所有</button>
+    </div>
+
+    <div class="container">
+        <!-- 黑方玩家 -->
+        <div class="user-panel player1">
+            <div class="user-title">⚫ 黑方玩家</div>
+            <div class="status disconnected" id="status1">未连接</div>
+            <div class="input-group">
+                <input type="text" id="room1" placeholder="房间号" value="test001">
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="connectUser(1)">连接</button>
+                <button class="btn" onclick="createRoom(1)">创建房间</button>
+                <button class="btn" onclick="disconnectUser(1)">断开</button>
+            </div>
+            <div class="info" id="info1">
+                <div>状态: 未连接</div>
+            </div>
+            <div class="board" id="board1"></div>
+            <div class="log" id="log1"></div>
+        </div>
+
+        <!-- 白方玩家 -->
+        <div class="user-panel player2">
+            <div class="user-title">⚪ 白方玩家</div>
+            <div class="status disconnected" id="status2">未连接</div>
+            <div class="input-group">
+                <input type="text" id="room2" placeholder="房间号" value="test001">
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="connectUser(2)">连接</button>
+                <button class="btn" onclick="joinRoom(2)">加入房间</button>
+                <button class="btn" onclick="disconnectUser(2)">断开</button>
+            </div>
+            <div class="info" id="info2">
+                <div>状态: 未连接</div>
+            </div>
+            <div class="board" id="board2"></div>
+            <div class="log" id="log2"></div>
+        </div>
+
+        <!-- 观战者 -->
+        <div class="user-panel spectator">
+            <div class="user-title">👀 观战者</div>
+            <div class="status disconnected" id="status3">未连接</div>
+            <div class="input-group">
+                <input type="text" id="room3" placeholder="房间号" value="test001">
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="connectUser(3)">连接</button>
+                <button class="btn" onclick="spectateRoom(3)">观战</button>
+                <button class="btn" onclick="disconnectUser(3)">断开</button>
+            </div>
+            <div class="info" id="info3">
+                <div>状态: 未连接</div>
+            </div>
+            <div class="board" id="board3"></div>
+            <div class="log" id="log3"></div>
+        </div>
+    </div>
+
+    <script>
+        // 三个用户的WebSocket连接
+        const users = {
+            1: { ws: null, connected: false, color: 1, roomId: '', board: new Array(225).fill(0), username: 'player1', nickname: '黑方玩家' },
+            2: { ws: null, connected: false, color: 2, roomId: '', board: new Array(225).fill(0), username: 'player2', nickname: '白方玩家' },
+            3: { ws: null, connected: false, color: 0, roomId: '', board: new Array(225).fill(0), username: 'spectator', nickname: '观战者' }
+        };
+
+        // 初始化棋盘
+        function initBoard(userId) {
+            const boardEl = document.getElementById(`board${userId}`);
+            boardEl.innerHTML = '';
+            for (let i = 0; i < 225; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                if (userId !== 3) { // 观战者不能点击
+                    cell.onclick = () => handleClick(userId, i);
+                }
+                boardEl.appendChild(cell);
+            }
+        }
+
+        // 连接WebSocket
+        function connectUser(userId) {
+            if (users[userId].connected) {
+                log(userId, '已连接', 'warn');
+                return;
+            }
+
+            const wsUrl = 'ws://localhost:8083/ws';
+            log(userId, `连接到 ${wsUrl}...`, 'info');
+
+            users[userId].ws = new WebSocket(wsUrl);
+
+            users[userId].ws.onopen = () => {
+                users[userId].connected = true;
+                updateStatus(userId, true);
+                log(userId, 'WebSocket已连接', 'success');
+
+                // 发送游客登录消息
+                users[userId].ws.send(JSON.stringify({
+                    type: 10, // MATCH_START - 使用匹配消息进行游客登录
+                    sequence_id: Date.now(),
+                    timestamp: Date.now(),
+                    body: {
+                        username: users[userId].username,
+                        nickname: users[userId].nickname,
+                        game_mode: 'casual'
+                    }
+                }));
+                log(userId, `发送游客登录: ${users[userId].username}`, 'info');
+            };
+
+            users[userId].ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleMessage(userId, data);
+                } catch (e) {
+                    log(userId, `消息解析错误: ${e.message}`, 'error');
+                }
+            };
+
+            users[userId].ws.onclose = () => {
+                users[userId].connected = false;
+                updateStatus(userId, false);
+                log(userId, 'WebSocket已断开', 'warn');
+            };
+
+            users[userId].ws.onerror = (error) => {
+                log(userId, 'WebSocket错误', 'error');
+            };
+        }
+
+        // 创建房间
+        function createRoom(userId) {
+            const roomId = document.getElementById(`room${userId}`).value;
+            if (!roomId) {
+                log(userId, '请输入房间号', 'error');
+                return;
+            }
+
+            users[userId].roomId = roomId;
+            log(userId, `创建房间: ${roomId}`, 'info');
+
+            users[userId].ws.send(JSON.stringify({
+                type: 16, // CREATE_ROOM
+                sequence_id: Date.now(),
+                timestamp: Date.now(),
+                body: {
+                    room_id: roomId,
+                    game_mode: 'casual'
+                }
+            }));
+        }
+
+        // 加入房间
+        function joinRoom(userId) {
+            const roomId = document.getElementById(`room${userId}`).value;
+            if (!roomId) {
+                log(userId, '请输入房间号', 'error');
+                return;
+            }
+
+            users[userId].roomId = roomId;
+            log(userId, `加入房间: ${roomId}`, 'info');
+
+            users[userId].ws.send(JSON.stringify({
+                type: 17, // JOIN_ROOM
+                sequence_id: Date.now(),
+                timestamp: Date.now(),
+                body: {
+                    room_id: roomId
+                }
+            }));
+        }
+
+        // 观战房间
+        function spectateRoom(userId) {
+            const roomId = document.getElementById(`room${userId}`).value;
+            if (!roomId) {
+                log(userId, '请输入房间号', 'error');
+                return;
+            }
+
+            users[userId].roomId = roomId;
+            log(userId, `加入观战: ${roomId}`, 'info');
+
+            setTimeout(() => {
+                users[userId].ws.send(JSON.stringify({
+                    type: 31, // OBSERVER_JOIN
+                    sequence_id: Date.now(),
+                    timestamp: Date.now(),
+                    body: {
+                        room_id: roomId
+                    }
+                }));
+            }, 500);
+        }
+
+        // 断开连接
+        function disconnectUser(userId) {
+            if (users[userId].ws) {
+                users[userId].ws.close();
+                users[userId].ws = null;
+                users[userId].connected = false;
+                updateStatus(userId, false);
+                log(userId, '已断开连接', 'warn');
+            }
+        }
+
+        // 处理落子
+        function handleClick(userId, index) {
+            const user = users[userId];
+            if (!user.connected) {
+                log(userId, '未连接', 'error');
+                return;
+            }
+
+            const x = Math.floor(index / 15);
+            const y = index % 15;
+
+            log(userId, `落子: (${x}, ${y})`, 'info');
+
+            user.ws.send(JSON.stringify({
+                type: 30, // GAME_MOVE
+                sequence_id: Date.now(),
+                timestamp: Date.now(),
+                body: { x, y }
+            }));
+        }
+
+        // 处理消息
+        function handleMessage(userId, data) {
+            const type = data.type;
+            const body = data.body || {};
+
+            switch (type) {
+                case 100: // 认证响应
+                    log(userId, `认证${body.success ? '成功' : '失败'}`, body.success ? 'success' : 'error');
+                    break;
+
+                case 20: // ROOM_JOINED
+                    users[userId].color = body.my_color || 0;
+                    updateInfo(userId);
+                    log(userId, `加入房间成功，执${users[userId].color === 1 ? '黑' : '白'}棋`, 'success');
+                    break;
+
+                case 32: // GAME_STATE
+                    if (body.board) {
+                        users[userId].board = body.board;
+                        renderBoard(userId);
+                        updateInfo(userId);
+                    }
+                    break;
+
+                case 31: // GAME_MOVE_RESULT
+                    if (body.success === false) {
+                        log(userId, `落子失败: ${body.message || '未知错误'}`, 'error');
+                    } else {
+                        log(userId, '落子成功', 'success');
+                    }
+                    break;
+
+                case 33: // GAME_OVER
+                    log(userId, `游戏结束! 胜者: ${body.winner_id}`, 'success');
+                    break;
+
+                default:
+                    log(userId, `收到消息: type=${type}`, 'info');
+            }
+        }
+
+        // 渲染棋盘
+        function renderBoard(userId) {
+            const cells = document.querySelectorAll(`#board${userId} .cell`);
+            const board = users[userId].board;
+
+            cells.forEach((cell, i) => {
+                cell.className = 'cell';
+                if (board[i] === 1) cell.classList.add('black');
+                if (board[i] === 2) cell.classList.add('white');
+            });
+        }
+
+        // 更新连接状态
+        function updateStatus(userId, connected) {
+            const statusEl = document.getElementById(`status${userId}`);
+            statusEl.textContent = connected ? '已连接' : '未连接';
+            statusEl.className = `status ${connected ? 'connected' : 'disconnected'}`;
+        }
+
+        // 更新信息
+        function updateInfo(userId) {
+            const infoEl = document.getElementById(`info${userId}`);
+            const user = users[userId];
+            infoEl.innerHTML = `
+                <div>房间: ${user.roomId || '-'}</div>
+                <div>颜色: ${user.color === 1 ? '黑' : user.color === 2 ? '白' : '观战'}</div>
+            `;
+        }
+
+        // 记录日志
+        function log(userId, message, type = 'info') {
+            const logEl = document.getElementById(`log${userId}`);
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logEl.insertBefore(entry, logEl.firstChild);
+
+            // 限制日志条数
+            while (logEl.children.length > 50) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+
+        // 开始测试（自动化）
+        async function startTest() {
+            log(1, '=== 开始自动化测试 ===', 'info');
+            log(2, '=== 开始自动化测试 ===', 'info');
+            log(3, '=== 开始自动化测试 ===', 'info');
+
+            // 1. 连接所有用户
+            connectUser(1);
+            await sleep(500);
+            connectUser(2);
+            await sleep(500);
+            connectUser(3);
+
+            // 等待连接建立
+            await sleep(2000);
+
+            // 2. 黑方创建房间
+            createRoom(1);
+            await sleep(1000);
+
+            // 3. 白方加入房间
+            joinRoom(2);
+            await sleep(2000);
+
+            // 4. 观战者观战
+            spectateRoom(3);
+        }
+
+        // 重置所有
+        function resetAll() {
+            for (let i = 1; i <= 3; i++) {
+                disconnectUser(i);
+                users[i].board = new Array(225).fill(0);
+                users[i].roomId = '';
+                users[i].color = i === 1 ? 1 : i === 2 ? 2 : 0;
+                users[i].username = i === 1 ? 'player1' : i === 2 ? 'player2' : 'spectator';
+                users[i].nickname = i === 1 ? '黑方玩家' : i === 2 ? '白方玩家' : '观战者';
+                initBoard(i);
+                document.getElementById(`log${i}`).innerHTML = '';
+                updateInfo(i);
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 初始化
+        for (let i = 1; i <= 3; i++) {
+            initBoard(i);
+        }
+    </script>
+</body>
+</html>

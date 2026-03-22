@@ -28,7 +28,7 @@
 
         async function testHealthAPI() {
             try {
-                const response = await fetch('http://localhost:9090/api/health');
+                const response = await fetch('http://localhost:8083/api/health');
                 const data = await response.json();
                 addResult('健康检查API', true, JSON.stringify(data));
             } catch (error) {
@@ -64,7 +64,7 @@
 
         async function testStaticFile() {
             try {
-                const response = await fetch('http://localhost:9090/login.html');
+                const response = await fetch('http://localhost:8083/login.html');
                 const text = await response.text();
                 if (text.includes('五子棋在线对战')) {
                     addResult('静态文件', true, 'login.html加载成功');

@@ -11,6 +11,7 @@ import com.gobang.model.entity.Friend;
 import com.gobang.model.entity.User;
 import com.gobang.protocol.protobuf.GobangProto;
 import com.gobang.service.FriendService;
+import com.gobang.service.FriendGroupService;
 import com.gobang.service.UserService;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -31,19 +32,21 @@ public class FriendHandler implements MessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(FriendHandler.class);
 
     private final FriendService friendService;
+    private final FriendGroupService friendGroupService;
     private final UserService userService;
     private final FriendManager friendManager;
     private final RateLimitManager rateLimitManager;
 
-    public FriendHandler(FriendService friendService, UserService userService, FriendManager friendManager, RateLimitManager rateLimitManager) {
+    public FriendHandler(FriendService friendService, FriendGroupService friendGroupService, UserService userService, FriendManager friendManager, RateLimitManager rateLimitManager) {
         this.friendService = friendService;
+        this.friendGroupService = friendGroupService;
         this.userService = userService;
         this.friendManager = friendManager;
         this.rateLimitManager = rateLimitManager;
     }
 
-    public FriendHandler(FriendService friendService, UserService userService, FriendManager friendManager) {
-        this(friendService, userService, friendManager, null);
+    public FriendHandler(FriendService friendService, FriendGroupService friendGroupService, UserService userService, FriendManager friendManager) {
+        this(friendService, friendGroupService, userService, friendManager, null);
     }
 
     @Override
@@ -77,6 +80,18 @@ public class FriendHandler implements MessageHandler {
                 break;
             case FRIEND_LIST:
                 handleFriendList(ctx, packet, userId);
+                break;
+            case FRIEND_REMARK:
+                handleFriendRemark(ctx, packet, userId);
+                break;
+            case FRIEND_GROUP_CREATE:
+                handleFriendGroupCreate(ctx, packet, userId);
+                break;
+            case FRIEND_GROUP_LIST:
+                handleFriendGroupList(ctx, packet, userId);
+                break;
+            case FRIEND_MOVE_GROUP:
+                handleFriendMoveGroup(ctx, packet, userId);
                 break;
             default:
                 logger.warn("Unsupported message type for FriendHandler: {}", messageType);
@@ -145,11 +160,16 @@ public class FriendHandler implements MessageHandler {
 
                 // 使用FriendManager发送JSON格式的通知
                 Channel targetChannel = friendManager.getChannel(targetId);
+                logger.info("Trying to get channel for target user {}: {}", targetId, targetChannel != null ? "found" : "NOT FOUND");
+                if (targetChannel != null) {
+                    logger.info("Target channel active: {}", targetChannel.isActive());
+                }
                 if (targetChannel != null && targetChannel.isActive()) {
                     ResponseUtil.sendJsonResponse(targetChannel, MessageType.FRIEND_REQUEST.getValue(), 0, bodyData);
                     logger.info("Friend request notification sent to user {} from user {}", targetId, userId);
                 } else {
                     logger.info("User {} is offline, friend request saved for later", targetId);
+                    logger.info("FriendManager online users: {}", friendManager.isUserOnline(targetId) ? "YES" : "NO");
                 }
 
                 // 发送确认给发送者
@@ -287,6 +307,17 @@ public class FriendHandler implements MessageHandler {
                 // 更新内存中的好友关系
                 friendManager.removeFriendship(userId, friendId);
 
+                // 通知被删除的好友 - 使用FRIEND_REMOVE消息类型
+                Channel friendChannel = friendManager.getChannel(friendId);
+                if (friendChannel != null && friendChannel.isActive()) {
+                    Map<String, Object> removeNotify = new HashMap<>();
+                    removeNotify.put("friend_id", String.valueOf(userId));
+                    removeNotify.put("friend_name", userService.getUserById(userId).getNickname());
+                    ResponseUtil.sendJsonResponse(friendChannel, MessageType.FRIEND_REMOVE.getValue(),
+                        0, removeNotify);
+                    logger.info("Notified user {} that friend {} removed them", friendId, userId);
+                }
+
                 sendConfirmation(ctx, packet, MessageType.FRIEND_REMOVE, "已删除好友");
                 logger.info("User {} removed friend {}", userId, friendId);
             } else {
@@ -306,36 +337,28 @@ public class FriendHandler implements MessageHandler {
         try {
             List<User> friends = friendService.getFriendList(userId);
 
-            List<GobangProto.FriendInfo> friendInfos = new ArrayList<>();
+            List<Map<String, Object>> friendList = new ArrayList<>();
             for (User friend : friends) {
                 boolean isOnline = friendManager.isUserOnline(friend.getId());
-
-                GobangProto.FriendInfo info = GobangProto.FriendInfo.newBuilder()
-                        .setUserId(String.valueOf(friend.getId()))
-                        .setUsername(friend.getUsername())
-                        .setNickname(friend.getNickname())
-                        .setAvatar(friend.getAvatar())
-                        .setRating(friend.getRating())
-                        .setOnline(isOnline)
-                        .setLastOnline(friend.getLastOnline() != null ?
-                                friend.getLastOnline().toEpochSecond(java.time.ZoneOffset.of("+8")) * 1000 : 0)
-                        .build();
-
-                friendInfos.add(info);
+                Map<String, Object> friendInfo = new HashMap<>();
+                friendInfo.put("user_id", String.valueOf(friend.getId()));
+                friendInfo.put("username", friend.getUsername());
+                friendInfo.put("nickname", friend.getNickname());
+                friendInfo.put("avatar", friend.getAvatar());
+                friendInfo.put("rating", friend.getRating());
+                friendInfo.put("online", isOnline);
+                friendInfo.put("last_online", friend.getLastOnline() != null ?
+                        friend.getLastOnline().toEpochSecond(java.time.ZoneOffset.of("+8")) * 1000 : 0);
+                friendList.add(friendInfo);
             }
 
-            GobangProto.FriendListMsg friendList = GobangProto.FriendListMsg.newBuilder()
-                    .addAllFriends(friendInfos)
-                    .build();
+            Map<String, Object> bodyData = new HashMap<>();
+            bodyData.put("friends", friendList);
 
-            GobangProto.Packet response = GobangProto.Packet.newBuilder()
-                    .setType(GobangProto.MessageType.FRIEND_LIST)
-                    .setSequenceId(packet.getSequenceId())
-                    .setTimestamp(System.currentTimeMillis())
-                    .setBody(friendList.toByteString())
-                    .build();
+            ResponseUtil.sendJsonResponse(ctx.channel(), MessageType.FRIEND_LIST.getValue(),
+                packet.getSequenceId(), bodyData);
 
-            ctx.channel().writeAndFlush(response);
+            logger.info("Friend list sent to user {}, count: {}", userId, friends.size());
 
         } catch (Exception e) {
             logger.error("Error handling friend list for user: {}", userId, e);
@@ -348,44 +371,193 @@ public class FriendHandler implements MessageHandler {
      */
     private void sendConfirmation(ChannelHandlerContext ctx, GobangProto.Packet request,
                                    MessageType type, String message) {
-        GobangProto.ChatReceive chatReceive = GobangProto.ChatReceive.newBuilder()
-                .setSenderId("0")
-                .setSenderName("系统")
-                .setContent(message)
-                .setTimestamp(System.currentTimeMillis())
-                .setIsPrivate(false)
-                .build();
+        Map<String, Object> bodyData = new HashMap<>();
+        bodyData.put("success", true);
+        bodyData.put("message", message);
 
-        GobangProto.Packet packet = GobangProto.Packet.newBuilder()
-                .setType(GobangProto.MessageType.CHAT_SYSTEM)
-                .setSequenceId(request.getSequenceId())
-                .setTimestamp(System.currentTimeMillis())
-                .setBody(chatReceive.toByteString())
-                .build();
-
-        ctx.channel().writeAndFlush(packet);
+        ResponseUtil.sendJsonResponse(ctx.channel(), type.getValue(),
+            request.getSequenceId(), bodyData);
     }
 
     /**
      * 发送错误消息
      */
     private void sendError(ChannelHandlerContext ctx, GobangProto.Packet request, String message) {
-        GobangProto.ChatReceive chatReceive = GobangProto.ChatReceive.newBuilder()
-                .setSenderId("0")
-                .setSenderName("系统")
-                .setContent(message)
-                .setTimestamp(System.currentTimeMillis())
-                .setIsPrivate(false)
-                .build();
+        Map<String, Object> bodyData = new HashMap<>();
+        bodyData.put("success", false);
+        bodyData.put("message", message);
 
-        GobangProto.Packet packet = GobangProto.Packet.newBuilder()
-                .setType(GobangProto.MessageType.CHAT_SYSTEM)
-                .setSequenceId(request.getSequenceId())
-                .setTimestamp(System.currentTimeMillis())
-                .setBody(chatReceive.toByteString())
-                .build();
+        ResponseUtil.sendJsonResponse(ctx.channel(), MessageType.CHAT_SYSTEM.getValue(),
+            request.getSequenceId(), bodyData);
+    }
 
-        ctx.channel().writeAndFlush(packet);
+    /**
+     * 处理设置好友备注
+     */
+    private void handleFriendRemark(ChannelHandlerContext ctx, GobangProto.Packet packet, Long userId) {
+        try {
+            // 使用JSON格式处理
+            com.fasterxml.jackson.databind.JsonNode body = parseJsonBody(packet);
+            if (body == null) {
+                sendError(ctx, packet, "消息格式错误");
+                return;
+            }
+
+            Long friendId = body.has("friend_id") ? body.get("friend_id").asLong() : null;
+            String remark = body.has("remark") ? body.get("remark").asText() : null;
+
+            if (friendId == null) {
+                sendError(ctx, packet, "缺少好友ID");
+                return;
+            }
+
+            boolean success = friendService.setFriendRemark(userId, friendId, remark);
+
+            Map<String, Object> bodyData = new HashMap<>();
+            bodyData.put("success", success);
+            bodyData.put("message", success ? "备注设置成功" : "设置失败");
+
+            ResponseUtil.sendJsonResponse(ctx.channel(), MessageType.FRIEND_REMARK.getValue(),
+                packet.getSequenceId(), bodyData);
+
+            logger.info("User {} set remark for friend {}: {}", userId, friendId, remark);
+
+        } catch (Exception e) {
+            logger.error("Error handling friend remark", e);
+            sendError(ctx, packet, "设置备注失败");
+        }
+    }
+
+    /**
+     * 处理获取分组列表
+     */
+    private void handleFriendGroupList(ChannelHandlerContext ctx, GobangProto.Packet packet, Long userId) {
+        try {
+            List<com.gobang.model.entity.FriendGroup> groups = friendGroupService.getUserGroups(userId);
+
+            // 转换为前端需要的格式
+            List<Map<String, Object>> groupData = new ArrayList<>();
+            for (com.gobang.model.entity.FriendGroup group : groups) {
+                Map<String, Object> groupInfo = new HashMap<>();
+                groupInfo.put("id", group.getId());
+                groupInfo.put("group_name", group.getGroupName());
+                groupInfo.put("sort_order", group.getSortOrder());
+                groupData.add(groupInfo);
+            }
+
+            Map<String, Object> bodyData = new HashMap<>();
+            bodyData.put("success", true);
+            bodyData.put("groups", groupData);
+
+            ResponseUtil.sendJsonResponse(ctx.channel(), MessageType.FRIEND_GROUP_LIST.getValue(),
+                packet.getSequenceId(), bodyData);
+
+            logger.info("User {} retrieved {} groups", userId, groups.size());
+
+        } catch (Exception e) {
+            logger.error("Error handling friend group list", e);
+            sendError(ctx, packet, "获取分组列表失败");
+        }
+    }
+
+    /**
+     * 处理创建好友分组
+     */
+    private void handleFriendGroupCreate(ChannelHandlerContext ctx, GobangProto.Packet packet, Long userId) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode body = parseJsonBody(packet);
+            if (body == null) {
+                sendError(ctx, packet, "消息格式错误");
+                return;
+            }
+
+            String groupName = body.has("group_name") ? body.get("group_name").asText() : null;
+            if (groupName == null || groupName.trim().isEmpty()) {
+                sendError(ctx, packet, "分组名称不能为空");
+                return;
+            }
+
+            groupName = groupName.trim();
+            if (groupName.length() > 20) {
+                sendError(ctx, packet, "分组名称不能超过20个字符");
+                return;
+            }
+
+            try {
+                com.gobang.model.entity.FriendGroup group = friendGroupService.createGroup(userId, groupName);
+
+                Map<String, Object> bodyData = new HashMap<>();
+                bodyData.put("success", true);
+                bodyData.put("message", "分组创建成功");
+                bodyData.put("group", Map.of(
+                    "id", group.getId(),
+                    "group_name", group.getGroupName(),
+                    "sort_order", group.getSortOrder()
+                ));
+
+                ResponseUtil.sendJsonResponse(ctx.channel(), MessageType.FRIEND_GROUP_CREATE.getValue(),
+                    packet.getSequenceId(), bodyData);
+
+                logger.info("User {} created group: {}", userId, groupName);
+
+            } catch (IllegalArgumentException e) {
+                sendError(ctx, packet, e.getMessage());
+            }
+
+        } catch (Exception e) {
+            logger.error("Error handling friend group create", e);
+            sendError(ctx, packet, "创建分组失败");
+        }
+    }
+
+    /**
+     * 处理移动好友到分组
+     */
+    private void handleFriendMoveGroup(ChannelHandlerContext ctx, GobangProto.Packet packet, Long userId) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode body = parseJsonBody(packet);
+            if (body == null) {
+                sendError(ctx, packet, "消息格式错误");
+                return;
+            }
+
+            Long friendId = body.has("friend_id") ? body.get("friend_id").asLong() : null;
+            Integer groupId = body.has("group_id") ? body.get("group_id").asInt() : null;
+
+            if (friendId == null) {
+                sendError(ctx, packet, "缺少好友ID");
+                return;
+            }
+
+            boolean success = friendService.moveFriendToGroup(userId, friendId, groupId);
+
+            Map<String, Object> bodyData = new HashMap<>();
+            bodyData.put("success", success);
+            bodyData.put("message", success ? "移动成功" : "移动失败");
+
+            ResponseUtil.sendJsonResponse(ctx.channel(), MessageType.FRIEND_MOVE_GROUP.getValue(),
+                packet.getSequenceId(), bodyData);
+
+            logger.info("User {} moved friend {} to group {}", userId, friendId, groupId);
+
+        } catch (Exception e) {
+            logger.error("Error handling friend move group", e);
+            sendError(ctx, packet, "移动分组失败");
+        }
+    }
+
+    /**
+     * 解析JSON格式的body
+     */
+    private com.fasterxml.jackson.databind.JsonNode parseJsonBody(GobangProto.Packet packet) {
+        try {
+            byte[] bodyBytes = packet.getBody().toByteArray();
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readTree(bodyBytes);
+        } catch (Exception e) {
+            logger.error("Failed to parse JSON body", e);
+            return null;
+        }
     }
 
     @Override

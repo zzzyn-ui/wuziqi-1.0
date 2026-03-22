@@ -8,8 +8,10 @@ import com.gobang.core.match.Player;
 import com.gobang.core.room.GameRoom;
 import com.gobang.core.room.RoomManager;
 import com.gobang.model.entity.User;
+import com.gobang.model.entity.GameRecord;
 import com.gobang.protocol.protobuf.GobangProto;
 import com.gobang.util.SecureRandomUtil;
+import com.gobang.core.netty.ResponseUtil;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.slf4j.Logger;
@@ -43,6 +45,7 @@ public class RoomService {
     // ==================== 依赖 ====================
     private final RoomManager roomManager;
     private final UserService userService;
+    private final RecordService recordService;
     private final ObjectMapper objectMapper;
 
     // ==================== 定时任务 ====================
@@ -51,9 +54,10 @@ public class RoomService {
     // ==================== 观战管理 ====================
     private final Map<String, Set<Long>> roomObservers = new ConcurrentHashMap<>();
 
-    public RoomService(RoomManager roomManager, UserService userService) {
+    public RoomService(RoomManager roomManager, UserService userService, RecordService recordService) {
         this.roomManager = roomManager;
         this.userService = userService;
+        this.recordService = recordService;
         this.objectMapper = new ObjectMapper();
         this.scheduler = Executors.newScheduledThreadPool(2, r -> {
             Thread t = new Thread(r, "room-scheduler");
@@ -147,6 +151,37 @@ public class RoomService {
     }
 
     /**
+     * 处理超时判负
+     */
+    /**
+     * 处理超时判负
+     * 规则：当前回合玩家超时未落子判负，对手获胜
+     */
+    public void handleTimeout(Long timeoutPlayerId, String roomId) {
+        logger.info("=== handleTimeout === 超时玩家: {}, 房间: {}", timeoutPlayerId, roomId);
+
+        GameRoom room = roomManager.getRoom(roomId);
+        if (room == null) {
+            logger.warn("handleTimeout - 房间不存在: {}", roomId);
+            return;
+        }
+
+        logger.info("handleTimeout - 房间: {}, 黑方: {}, 白方: {}, 当前玩家: {}, 超时玩家: {}",
+            room.getRoomId(), room.getBlackPlayerId(), room.getWhitePlayerId(),
+            room.getCurrentPlayer(), timeoutPlayerId);
+
+        // 确定获胜者：超时玩家的对手
+        Long winnerId = timeoutPlayerId.equals(room.getBlackPlayerId())
+            ? room.getWhitePlayerId()
+            : room.getBlackPlayerId();
+
+        logger.info("handleTimeout - 超时玩家 {} 判负，对手 {} 获胜", timeoutPlayerId, winnerId);
+
+        room.resign(timeoutPlayerId);
+        handleGameOver(room, winnerId, 4); // 4 = 超时
+    }
+
+    /**
      * 请求悔棋
      */
     public int requestUndo(Long userId, String roomId) {
@@ -161,16 +196,27 @@ public class RoomService {
      * 响应悔棋
      */
     public int[] respondUndo(Long userId, String roomId, boolean accept) {
+        logger.info("=== respondUndo 被调用 === userId: {}, roomId: {}, accept: {}", userId, roomId, accept);
+
         GameRoom room = roomManager.getRoom(roomId);
         if (room == null) {
+            logger.warn("respondUndo - 房间不存在: {}", roomId);
             return null;
         }
 
+        logger.info("respondUndo - 房间存在, 黑方: {}, 白方: {}, 当前玩家: {}, 棋子数: {}",
+            room.getBlackPlayerId(), room.getWhitePlayerId(),
+            room.getCurrentPlayer(), room.getMoves().size());
+
         int[] undoneMove = room.respondUndo(userId, accept);
         if (undoneMove != null) {
+            logger.info("respondUndo - 悔棋成功, 撤销的落子: ({}, {}), 颜色: {}, 剩余棋子: {}",
+                undoneMove[0], undoneMove[1], undoneMove[2], room.getMoves().size());
             // 悔棋成功，广播
             broadcastUndoNotify(room, undoneMove[0], undoneMove[1], undoneMove[2]);
             broadcastGameState(room);
+        } else {
+            logger.info("respondUndo - 悔棋失败或被拒绝, undoneMove: null");
         }
         return undoneMove;
     }
@@ -182,23 +228,49 @@ public class RoomService {
      */
     private void broadcastGameState(GameRoom room) {
         try {
-            Map<String, Object> message = new HashMap<>();
-            message.put("type", "GAME_STATE");
-            message.put("roomId", room.getRoomId());
-            message.put("board", room.getBoard().toArray());
-            message.put("currentPlayer", room.getCurrentPlayer());
-            message.put("moveCount", room.getMoves().size());
-            message.put("gameState", room.getGameState().name());
+            // 使用标准JSON格式（数据在body中）
+            Map<String, Object> gameState = new HashMap<>();
+            gameState.put("room_id", room.getRoomId());
+            gameState.put("board", room.getBoard().toArray());
+            gameState.put("current_player", room.getCurrentPlayer());
+            gameState.put("move_count", room.getMoves().size());
+            gameState.put("game_state", room.getGameState().name());
+            // 添加双方剩余时间（毫秒）
+            gameState.put("black_remaining_time", room.getBlackPlayerRemainingTime());
+            gameState.put("white_remaining_time", room.getWhitePlayerRemainingTime());
 
-            String json = objectMapper.writeValueAsString(message);
-            TextWebSocketFrame frame = new TextWebSocketFrame(json);
+            logger.info("broadcastGameState - 房间: {}, 棋子数: {}, 当前玩家: {}, 黑方时间: {}ms, 白方时间: {}ms",
+                room.getRoomId(), room.getMoves().size(), room.getCurrentPlayer(),
+                room.getBlackPlayerRemainingTime(), room.getWhitePlayerRemainingTime());
 
-            // 直接发送给两个玩家
+            // 发送给黑方（添加 my_color）
             if (room.getBlackChannel() != null && room.getBlackChannel().isActive()) {
-                room.getBlackChannel().writeAndFlush(frame);
+                Map<String, Object> blackState = new HashMap<>(gameState);
+                blackState.put("my_color", 1); // 黑方
+                com.gobang.core.netty.ResponseUtil.sendJsonResponse(
+                    room.getBlackChannel(),
+                    32, // GAME_STATE
+                    0,
+                    blackState
+                );
+                logger.info("已发送 GAME_STATE 到黑方 - 房间: {}", room.getRoomId());
+            } else {
+                logger.warn("黑方 channel 不可用 - 房间: {}", room.getRoomId());
             }
+
+            // 发送给白方（添加 my_color）
             if (room.getWhiteChannel() != null && room.getWhiteChannel().isActive()) {
-                room.getWhiteChannel().writeAndFlush(frame);
+                Map<String, Object> whiteState = new HashMap<>(gameState);
+                whiteState.put("my_color", 2); // 白方
+                com.gobang.core.netty.ResponseUtil.sendJsonResponse(
+                    room.getWhiteChannel(),
+                    32, // GAME_STATE
+                    0,
+                    whiteState
+                );
+                logger.info("已发送 GAME_STATE 到白方 - 房间: {}", room.getRoomId());
+            } else {
+                logger.warn("白方 channel 不可用 - 房间: {}", room.getRoomId());
             }
 
         } catch (Exception e) {
@@ -324,9 +396,47 @@ public class RoomService {
         // 广播游戏结束
         broadcastGameOver(room, winnerId, endReason);
 
+        // 保存游戏记录到数据库（包括超时判负）
+        saveGameRecordToDb(room, winnerId, endReason);
+
         // 更新用户状态
         userService.updateUserStatus(room.getBlackPlayerId(), 0);
         userService.updateUserStatus(room.getWhitePlayerId(), 0);
+    }
+
+    /**
+     * 保存游戏记录到数据库
+     */
+    private void saveGameRecordToDb(GameRoom room, Long winnerId, int endReason) {
+        try {
+            // 获取用户信息
+            User blackUser = userService.getUserById(room.getBlackPlayerId());
+            User whiteUser = userService.getUserById(room.getWhitePlayerId());
+
+            int blackRatingBefore = blackUser != null ? blackUser.getRating() : 1200;
+            int whiteRatingBefore = whiteUser != null ? whiteUser.getRating() : 1200;
+
+            // 创建游戏记录
+            GameRecord record = room.createRecord(
+                winnerId,
+                endReason,
+                blackRatingBefore,
+                whiteRatingBefore,
+                0,  // 黑方积分变化（超时判负不计算积分变化）
+                0   // 白方积分变化
+            );
+
+            logger.info("保存游戏记录 - 房间: {}, 黑: {}, 白: {}, 胜者: {}, 模式: {}, 原因: {}",
+                room.getRoomId(), room.getBlackPlayerId(), room.getWhitePlayerId(),
+                winnerId, room.getGameMode(), endReason);
+
+            // 保存到数据库
+            recordService.saveRecord(record);
+
+            logger.info("✅ 游戏记录已保存 - 房间: {}, 原因: {}", room.getRoomId(), endReason);
+        } catch (Exception e) {
+            logger.error("❌ 保存游戏记录失败 - 房间: {}, 原因: {}", room.getRoomId(), endReason, e);
+        }
     }
 
     /**

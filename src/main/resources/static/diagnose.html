@@ -97,7 +97,7 @@
                 <span class="result pending" id="httpResult">待检测</span>
             </div>
             <div class="test-item">
-                <span class="label">WebSocket (端口 9090)</span>
+                <span class="label">WebSocket (端口 8083)</span>
                 <span class="result pending" id="wsResult">待检测</span>
             </div>
         </div>
@@ -164,7 +164,7 @@
             // 1. 测试HTTP API
             log('测试HTTP API连接...', 'info');
             try {
-                const response = await fetch('http://localhost:9090/api/user/profile', {
+                const response = await fetch('http://localhost:8083/api/user/profile', {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('gobang_token') || ''}`

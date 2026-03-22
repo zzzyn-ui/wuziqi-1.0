@@ -26,21 +26,26 @@ public class RedisUtil {
         this.port = port;
         this.database = database;
         this.password = password;
-        logger.info("=== RedisUtil 初始化: host={}, port={}, database={}, timeout={} ===", host, port, database, timeout);
+        logger.info("=== RedisUtil 初始化: host={}, port={}, database={}, timeout={}, password={} ===",
+            host, port, database, timeout, password != null && !password.isEmpty() ? "***" : "(none)");
 
         JedisPoolConfig config = new JedisPoolConfig();
         config.setMaxTotal(50);
         config.setMaxIdle(20);
         config.setMinIdle(5);
-        config.setTestOnBorrow(false);  // 禁用 - 连接需要先认证
+        config.setTestOnBorrow(true);
         config.setTestOnReturn(false);
-        config.setTestWhileIdle(false);  // 禁用 - 空闲测试也需要认证
+        config.setTestWhileIdle(true);
         config.setMinEvictableIdleTimeMillis(60000);
         config.setTimeBetweenEvictionRunsMillis(30000);
         config.setNumTestsPerEvictionRun(-1);
 
-        // 使用最简单的构造函数，手动处理认证
-        this.pool = new JedisPool(config, host, port, timeout);
+        // 使用带密码的构造函数，让连接池自动处理认证
+        if (password != null && !password.isEmpty()) {
+            this.pool = new JedisPool(config, host, port, timeout, password);
+        } else {
+            this.pool = new JedisPool(config, host, port, timeout);
+        }
     }
 
     /**
@@ -48,10 +53,7 @@ public class RedisUtil {
      */
     private Jedis getResource() {
         Jedis jedis = pool.getResource();
-        // 手动认证和选择数据库
-        if (password != null && !password.isEmpty()) {
-            jedis.auth(password);
-        }
+        // 只需要选择数据库，认证已由连接池自动处理
         if (database != 0) {
             jedis.select(database);
         }
@@ -89,6 +91,26 @@ public class RedisUtil {
         } catch (Exception e) {
             logger.error("Redis get error: key={}", key, e);
             return null;
+        }
+    }
+
+    /**
+     * 测试 Redis 连接（抛出异常以便调用者检测连接状态）
+     */
+    public void testConnection() throws Exception {
+        try (Jedis jedis = pool.getResource()) {
+            // 认证
+            if (password != null && !password.isEmpty()) {
+                jedis.auth(password);
+            }
+            if (database != 0) {
+                jedis.select(database);
+            }
+            // 执行 ping 命令测试连接
+            String pong = jedis.ping();
+            if (!"PONG".equals(pong)) {
+                throw new RuntimeException("Redis ping 失败: " + pong);
+            }
         }
     }
 
@@ -294,5 +316,97 @@ public class RedisUtil {
         if (pool != null && !pool.isClosed()) {
             pool.close();
         }
+    }
+
+    /**
+     * 保存游戏状态到Redis
+     */
+    public void saveGameState(String roomId, String gameStateJson, int expireSeconds) {
+        String key = "game:state:" + roomId;
+        setex(key, expireSeconds, gameStateJson);
+        logger.info("保存游戏状态到Redis: roomId={}, expireSeconds={}", roomId, expireSeconds);
+    }
+
+    /**
+     * 从Redis加载游戏状态
+     */
+    public String loadGameState(String roomId) {
+        String key = "game:state:" + roomId;
+        String state = get(key);
+        logger.info("从Redis加载游戏状态: roomId={}, found={}", roomId, state != null);
+        return state;
+    }
+
+    /**
+     * 删除游戏状态
+     */
+    public void deleteGameState(String roomId) {
+        String key = "game:state:" + roomId;
+        del(key);
+        logger.info("删除游戏状态: roomId={}", roomId);
+    }
+
+    /**
+     * 保存用户到房间的映射（用于重连）
+     */
+    public void saveUserRoomMapping(Long userId, String roomId, int expireSeconds) {
+        String key = "user:room:" + userId;
+        setex(key, expireSeconds, roomId);
+        logger.info("保存用户房间映射: userId={}, roomId={}, expireSeconds={}", userId, roomId, expireSeconds);
+    }
+
+    /**
+     * 获取用户的房间ID
+     */
+    public String getUserRoomId(Long userId) {
+        String key = "user:room:" + userId;
+        String roomId = get(key);
+        return roomId;
+    }
+
+    /**
+     * 删除用户房间映射
+     */
+    public void deleteUserRoomMapping(Long userId) {
+        String key = "user:room:" + userId;
+        del(key);
+        logger.info("删除用户房间映射: userId={}", userId);
+    }
+
+    /**
+     * 保存用户最后活动时间（用于超时检测）
+     */
+    public void saveUserLastActivity(String roomId, Long userId, long timestamp) {
+        String key = "game:activity:" + roomId + ":" + userId;
+        setex(key, 180, String.valueOf(timestamp)); // 3分钟过期
+        logger.info("保存用户活动时间: roomId={}, userId={}, timestamp={}", roomId, userId, timestamp);
+    }
+
+    /**
+     * 获取用户最后活动时间
+     */
+    public Long getUserLastActivity(String roomId, Long userId) {
+        String key = "game:activity:" + roomId + ":" + userId;
+        String timestamp = get(key);
+        if (timestamp != null) {
+            try {
+                return Long.parseLong(timestamp);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 检查用户是否超时（超过指定时间未活动）
+     */
+    public boolean isUserTimeout(String roomId, Long userId, int timeoutSeconds) {
+        Long lastActivity = getUserLastActivity(roomId, userId);
+        if (lastActivity == null) {
+            return false; // 没有活动记录，不算超时
+        }
+        long elapsed = (System.currentTimeMillis() - lastActivity) / 1000;
+        return elapsed > timeoutSeconds;
     }
 }

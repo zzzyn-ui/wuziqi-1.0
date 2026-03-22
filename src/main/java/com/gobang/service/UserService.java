@@ -18,6 +18,9 @@ public class UserService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
+    /** 默认积分 */
+    private static final int DEFAULT_RATING = 1200;
+
     private final SqlSessionFactory sqlSessionFactory;
 
     public UserService(SqlSessionFactory sqlSessionFactory) {
@@ -75,6 +78,37 @@ public class UserService {
                 session.commit();
                 logger.info("Updated rating for user {}: {} (exp: +{})", userId, newRating, expGained);
             }
+        }
+    }
+
+    /**
+     * 获取用户积分
+     */
+    public int getRating(Long userId) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper userMapper = session.getMapper(UserMapper.class);
+            User user = userMapper.findById(userId);
+            return user != null ? user.getRating() : DEFAULT_RATING;
+        } catch (Exception e) {
+            logger.error("Failed to get rating for user {}", userId, e);
+            return DEFAULT_RATING;
+        }
+    }
+
+    /**
+     * 更新用户积分（不计算经验值）
+     */
+    public void updateRating(Long userId, int newRating) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper userMapper = session.getMapper(UserMapper.class);
+            User user = userMapper.findById(userId);
+            if (user != null) {
+                userMapper.updateRating(userId, newRating, user.getLevel(), user.getExp());
+                session.commit();
+                logger.info("Updated rating for user {} to {}", userId, newRating);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to update rating for user {}", userId, e);
         }
     }
 
