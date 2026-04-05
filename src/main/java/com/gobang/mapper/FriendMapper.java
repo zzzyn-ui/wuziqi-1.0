@@ -97,4 +97,10 @@ public interface FriendMapper {
      */
     @Update("UPDATE friend SET remark = #{remark}, group_id = #{groupId}, updated_at = CURRENT_TIMESTAMP WHERE user_id = #{userId} AND friend_id = #{friendId}")
     int updateEntity(Friend friend);
+
+    /**
+     * 将指定分组下的好友移到默认分组（group_id = NULL）
+     */
+    @Update("UPDATE friend SET group_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = #{userId} AND group_id = #{groupId}")
+    int moveFriendsToDefaultGroup(@Param("userId") Long userId, @Param("groupId") Integer groupId);
 }

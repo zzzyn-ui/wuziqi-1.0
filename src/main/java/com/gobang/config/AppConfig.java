@@ -71,6 +71,63 @@ public class AppConfig {
         return webSocket;
     }
 
+    /**
+     * 获取字符串配置值
+     */
+    public String getString(String key, String defaultValue) {
+        try {
+            Yaml yaml = new Yaml();
+            InputStream inputStream = AppConfig.class.getClassLoader().getResourceAsStream("application.yml");
+            Map<String, Object> config = yaml.load(inputStream);
+
+            String[] keys = key.split("\\.");
+            Object current = config;
+
+            for (String k : keys) {
+                if (current instanceof Map) {
+                    current = ((Map<String, Object>) current).get(k);
+                } else {
+                    return defaultValue;
+                }
+            }
+
+            return current != null ? current.toString() : defaultValue;
+        } catch (Exception e) {
+            logger.warn("Failed to read config key: {}", key, e);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * 获取整数配置值
+     */
+    public int getInt(String key, int defaultValue) {
+        try {
+            Yaml yaml = new Yaml();
+            InputStream inputStream = AppConfig.class.getClassLoader().getResourceAsStream("application.yml");
+            Map<String, Object> config = yaml.load(inputStream);
+
+            String[] keys = key.split("\\.");
+            Object current = config;
+
+            for (String k : keys) {
+                if (current instanceof Map) {
+                    current = ((Map<String, Object>) current).get(k);
+                } else {
+                    return defaultValue;
+                }
+            }
+
+            if (current instanceof Number) {
+                return ((Number) current).intValue();
+            }
+            return defaultValue;
+        } catch (Exception e) {
+            logger.warn("Failed to read config key: {}", key, e);
+            return defaultValue;
+        }
+    }
+
     // ==================== 内部配置类 ====================
 
     /**

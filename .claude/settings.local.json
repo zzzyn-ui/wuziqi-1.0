@@ -117,7 +117,23 @@
       "Bash(redis-server.exe:*)",
       "Bash(\"D:/ruanjian/redis/Redis-x64-3.0.504/redis-server.exe\":*)",
       "Bash(xargs -I {} cmd //c taskkill //F //PID {})",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npm:*)",
+      "Bash(xcopy D:\\\\wuziqi:*)",
+      "Bash(robocopy D:\\\\wuziqi:*)",
+      "Bash(echo:*)",
+      "Bash(\"/c/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe\":*)",
+      "Bash(/c/mysql/bin/mysql.exe:*)",
+      "Bash(sleep 2:*)",
+      "Bash(mv:*)",
+      "Bash(__NEW_LINE_657e5b8bbd03d9dc__ echo \"\")",
+      "Bash(echo === 测试后端API ===:*)",
+      "Bash(xargs -I {} taskkill //F //PID {} echo \"已停止旧服务\" sleep 2)",
+      "Bash(xargs -I {} kill -9 {})",
+      "Bash(npx vue-tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(xargs -I {} taskkill //F //PID {})",
+      "Bash(touch:*)"
     ]
   }
 }

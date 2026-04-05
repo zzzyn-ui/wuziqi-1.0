@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '用户ID',
   `username` VARCHAR(32) NOT NULL COMMENT '用户名',
   `password` VARCHAR(128) NOT NULL COMMENT '密码(BCrypt加密)',
-  `nickname` VARCHAR(32) NOT NULL COMMENT '昵称',
+  `nickname` VARCHAR(32) NOT NULL DEFAULT '' COMMENT '昵称',
   `email` VARCHAR(64) DEFAULT NULL COMMENT '邮箱',
   `avatar` VARCHAR(255) DEFAULT '/default-avatar.png' COMMENT '头像URL',
   `rating` INT NOT NULL DEFAULT 1200 COMMENT 'ELO积分',

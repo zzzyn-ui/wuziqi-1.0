@@ -1,40 +1,34 @@
 package com.gobang.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.gobang.model.entity.GameRecord;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 /**
  * 对局记录Mapper
+ * 使用 MyBatis-Plus BaseMapper 提供基础CRUD操作
  */
 @Mapper
-public interface GameRecordMapper {
+public interface GameRecordMapper extends BaseMapper<GameRecord> {
 
     /**
-     * 插入对局记录
-     */
-    @Insert("INSERT INTO game_record (room_id, black_player_id, white_player_id, winner_id, win_color, " +
-            "end_reason, move_count, duration, black_rating_before, black_rating_after, black_rating_change, " +
-            "white_rating_before, white_rating_after, white_rating_change, board_state, moves, game_mode) " +
-            "VALUES (#{roomId}, #{blackPlayerId}, #{whitePlayerId}, #{winnerId}, #{winColor}, #{endReason}, " +
-            "#{moveCount}, #{duration}, #{blackRatingBefore}, #{blackRatingAfter}, #{blackRatingChange}, " +
-            "#{whiteRatingBefore}, #{whiteRatingAfter}, #{whiteRatingChange}, #{boardState}, #{moves}, #{gameMode})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
-    int insert(GameRecord record);
-
-    /**
-     * 根据ID查询
-     */
-    @Select("SELECT * FROM game_record WHERE id = #{id}")
-    GameRecord findById(@Param("id") Long id);
-
-    /**
-     * 根据房间ID查询
+     * 根据房间ID查询对局记录
      */
     @Select("SELECT * FROM game_record WHERE room_id = #{roomId}")
     GameRecord findByRoomId(@Param("roomId") String roomId);
 
     /**
-     * 查询用户的对局记录（三天内）
+     * 查询用户的对局记录（所有）
+     * 返回用户参与的所有对局，按时间倒序
+     */
+    @Select("SELECT * FROM game_record WHERE black_player_id = #{userId} OR white_player_id = #{userId} " +
+            "ORDER BY created_at DESC LIMIT #{limit}")
+    java.util.List<GameRecord> findByUserId(@Param("userId") Long userId, @Param("limit") int limit);
+
+    /**
+     * 查询用户的对局记录（最近三天）
      */
     @Select("SELECT * FROM game_record WHERE (black_player_id = #{userId} OR white_player_id = #{userId}) " +
             "AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY) " +
@@ -42,20 +36,13 @@ public interface GameRecordMapper {
     java.util.List<GameRecord> findRecentByUserId(@Param("userId") Long userId, @Param("limit") int limit);
 
     /**
-     * 查询用户的对局记录（所有）
-     */
-    @Select("SELECT * FROM game_record WHERE black_player_id = #{userId} OR white_player_id = #{userId} " +
-            "ORDER BY created_at DESC LIMIT #{limit}")
-    java.util.List<GameRecord> findByUserId(@Param("userId") Long userId, @Param("limit") int limit);
-
-    /**
-     * 统计用户对局数
+     * 统计用户对局总数
      */
     @Select("SELECT COUNT(*) FROM game_record WHERE black_player_id = #{userId} OR white_player_id = #{userId}")
     int countByUserId(@Param("userId") Long userId);
 
     /**
-     * 统计今日对局数（使用UTC时间比较）
+     * 统计今日对局数
      */
     @Select("SELECT COUNT(*) FROM game_record WHERE DATE(CONVERT_TZ(created_at, '+00:00', @@session.time_zone)) = CURDATE()")
     int countToday();
@@ -81,12 +68,16 @@ public interface GameRecordMapper {
     /**
      * 统计用户今日指定模式的对局数
      */
-    @Select("SELECT COUNT(*) FROM game_record WHERE (black_player_id = #{userId} OR white_player_id = #{userId}) AND game_mode = #{gameMode} AND created_at >= #{since}")
-    int countByUserAndModeSince(@Param("userId") Long userId, @Param("gameMode") String gameMode, @Param("since") java.time.LocalDateTime since);
+    @Select("SELECT COUNT(*) FROM game_record WHERE (black_player_id = #{userId} OR white_player_id = #{userId}) " +
+            "AND game_mode = #{gameMode} AND created_at >= #{since}")
+    int countByUserAndModeSince(@Param("userId") Long userId, @Param("gameMode") String gameMode,
+                                @Param("since") java.time.LocalDateTime since);
 
     /**
      * 统计今日指定模式的胜场数
      */
-    @Select("SELECT COUNT(*) FROM game_record WHERE game_mode = #{gameMode} AND winner_id = #{userId} AND created_at >= #{since}")
-    int countWinsByModeSince(@Param("gameMode") String gameMode, @Param("userId") Long userId, @Param("since") java.time.LocalDateTime since);
+    @Select("SELECT COUNT(*) FROM game_record WHERE game_mode = #{gameMode} AND winner_id = #{userId} " +
+            "AND created_at >= #{since}")
+    int countWinsByModeSince(@Param("gameMode") String gameMode, @Param("userId") Long userId,
+                            @Param("since") java.time.LocalDateTime since);
 }

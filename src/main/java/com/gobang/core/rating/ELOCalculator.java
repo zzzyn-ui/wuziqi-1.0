@@ -55,6 +55,31 @@ public class ELOCalculator {
     }
 
     /**
+     * 计算双方对局后的积分变化（指定哪方获胜）
+     *
+     * @param blackRating 黑方积分
+     * @param whiteRating 白方积分
+     * @param blackWins 黑方是否获胜
+     * @return 数组[黑方新积分, 白方新积分, 黑方变化, 白方变化]
+     */
+    public static int[] calculateRatingChange(int blackRating, int whiteRating, boolean blackWins) {
+        if (blackWins) {
+            // 黑方获胜
+            return calculateRatingChange(blackRating, whiteRating);
+        } else {
+            // 白方获胜
+            int[] result = calculateRatingChange(whiteRating, blackRating);
+            // 重新排列为 [黑方新积分, 白方新积分, 黑方变化, 白方变化]
+            return new int[]{
+                result[1],  // 黑方新积分 = 原来的白方变化应用到黑方
+                result[0],  // 白方新积分 = 原来的黑方变化应用到白方
+                result[1] - blackRating,   // 黑方变化 = 白方积分变化（负数）
+                result[0] - whiteRating    // 白方变化 = 黑方积分变化（正数）
+            };
+        }
+    }
+
+    /**
      * 计算平局后的积分变化
      *
      * @param player1Rating 玩家1积分

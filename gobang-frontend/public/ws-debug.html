@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>原生WebSocket测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { margin: 5px; padding: 10px 20px; font-size: 16px; }
+        #log { border: 1px solid #ccc; padding: 15px; margin-top: 20px; height: 400px; overflow-y: auto; background: #f9f9f9; }
+        .log-entry { margin: 5px 0; padding: 5px; border-left: 3px solid #ddd; padding-left: 10px; }
+        .success { border-left-color: #67c23a; background: #f0f9ff; }
+        .error { border-left-color: #f56c6c; background: #fef2f2; }
+        .info { border-left-color: #409eff; background: #ecf5ff; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket 连接诊断工具</h1>
+
+    <div>
+        <h2>步骤1: 测试后端连接</h2>
+        <button onclick="testBackendHTTP()">测试后端HTTP</button>
+        <button onclick="testBackendWS()">测试后端WS端口</button>
+    </div>
+
+    <div>
+        <h2>步骤2: WebSocket连接测试</h2>
+        <button onclick="connectNativeWS()">1. 原生WS连接</button>
+        <button onclick="connectSockJS()">2. SockJS连接</button>
+        <button onclick="disconnect()">断开连接</button>
+    </div>
+
+    <div>
+        <h2>步骤3: STOMP测试</h2>
+        <button onclick="connectSTOMP()">连接STOMP</button>
+        <button onclick="subscribeTest()">订阅测试</button>
+        <button onclick="sendTest()">发送测试</button>
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+        let stompClient = null;
+        let token = localStorage.getItem('token') || '';
+
+        function log(msg, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = new Date().toLocaleTimeString() + ' - ' + msg;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log('[' + type + ']', msg);
+        }
+
+        function testBackendHTTP() {
+            log('测试后端HTTP连接...', 'info');
+            fetch('http://localhost:8083/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: 'admin', password: 'admin123' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    log('✅ 后端HTTP正常，获得Token: ' + data.token.substring(0, 20) + '...', 'success');
+                    localStorage.setItem('token', data.token);
+                    token = data.token;
+                } else {
+                    log('❌ 后端返回错误: ' + data.message, 'error');
+                }
+            })
+            .catch(err => log('❌ HTTP请求失败: ' + err.message, 'error'));
+        }
+
+        function testBackendWS() {
+            log('测试后端WS端口...', 'info');
+            fetch('http://localhost:8083/ws')
+                .then(res => {
+                    log('后端WS端点响应状态: ' + res.status, 'info');
+                    return res.text();
+                })
+                .then(text => log('后端WS端点响应内容: ' + text, 'info'))
+                .catch(err => log('❌ WS端口测试失败: ' + err.message, 'error'));
+        }
+
+        function connectNativeWS() {
+            disconnect();
+            log('尝试原生WebSocket连接...', 'info');
+
+            try {
+                ws = new WebSocket('ws://localhost:8083/ws');
+                log('WebSocket对象创建成功: ' + ws, 'info');
+
+                ws.onopen = () => {
+                    log('✅ 原生WebSocket连接成功!', 'success');
+                };
+
+                ws.onerror = (error) => {
+                    log('❌ 原生WebSocket错误: ' + error, 'error');
+                };
+
+                ws.onclose = (event) => {
+                    log('❌ 原生WebSocket关闭: code=' + event.code + ', reason=' + event.reason, 'error');
+                };
+
+                ws.onmessage = (event) => {
+                    log('收到消息: ' + event.data, 'success');
+                };
+
+                // 10秒超时检查
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.CONNECTING) {
+                        log('❌ WebSocket连接超时', 'error');
+                        ws.close();
+                    }
+                }, 10000);
+
+            } catch (error) {
+                log('❌ 创建WebSocket失败: ' + error.message, 'error');
+            }
+        }
+
+        function connectSockJS() {
+            disconnect();
+            log('尝试SockJS连接...', 'info');
+
+            try {
+                const socket = new SockJS('http://localhost:8083/ws');
+                log('SockJS对象创建成功', 'info');
+
+                socket.onopen = () => {
+                    log('✅ SockJS连接打开!', 'success');
+                };
+
+                socket.onerror = (error) => {
+                    log('❌ SockJS错误: ' + error, 'error');
+                };
+
+                socket.onclose = (event) => {
+                    log('❌ SockJS关闭: ' + event, 'error');
+                };
+
+                ws = socket;
+
+                // 10秒超时检查
+                setTimeout(() => {
+                    if (socket.readyState === SockJS.CONNECTING) {
+                        log('❌ SockJS连接超时', 'error');
+                    }
+                }, 10000);
+
+            } catch (error) {
+                log('❌ 创建SockJS失败: ' + error.message, 'error');
+            }
+        }
+
+        function connectSTOMP() {
+            disconnect();
+            log('尝试STOMP连接...', 'info');
+
+            if (!token) {
+                log('❌ 没有Token，请先测试后端HTTP', 'error');
+                return;
+            }
+
+            try {
+                const socket = new SockJS('http://localhost:8083/ws');
+                stompClient = Stomp.over(socket);
+
+                stompClient.debug = function(str) {
+                    log('STOMP调试: ' + str, 'info');
+                };
+
+                stompClient.connect(
+                    { Authorization: 'Bearer ' + token },
+                    function(frame) {
+                        log('✅ STOMP连接成功! Frame: ' + JSON.stringify(frame), 'success');
+
+                        // 自动订阅测试
+                        stompClient.subscribe('/topic/test', function(message) {
+                            log('收到测试消息: ' + message.body, 'success');
+                        });
+                        log('订阅 /topic/test 成功', 'info');
+                    },
+                    function(error) {
+                        log('❌ STOMP连接失败: ' + error, 'error');
+                    }
+                );
+
+                // 15秒超时检查
+                setTimeout(() => {
+                    if (!stompClient.connected) {
+                        log('❌ STOMP连接超时', 'error');
+                    }
+                }, 15000);
+
+            } catch (error) {
+                log('❌ 创建STOMP失败: ' + error.message, 'error');
+            }
+        }
+
+        function subscribeTest() {
+            if (!stompClient || !stompClient.connected) {
+                log('❌ STOMP未连接', 'error');
+                return;
+            }
+            log('订阅 /topic/match...');
+            stompClient.subscribe('/topic/match', function(message) {
+                log('收到匹配消息: ' + message.body, 'success');
+            });
+        }
+
+        function sendTest() {
+            if (!stompClient || !stompClient.connected) {
+                log('❌ STOMP未连接', 'error');
+                return;
+            }
+            log('发送测试消息到 /app/test...');
+            stompClient.send('/app/test', {}, JSON.stringify({ action: 'test', time: new Date().toISOString() }));
+            log('测试消息已发送', 'info');
+        }
+
+        function disconnect() {
+            if (ws) {
+                log('断开现有连接...', 'info');
+                if (stompClient && stompClient.connected) {
+                    stompClient.disconnect();
+                }
+                ws.close();
+                ws = null;
+                stompClient = null;
+            }
+        }
+
+        // 页面加载时显示Token状态
+        window.onload = function() {
+            log('页面加载完成', 'info');
+            log('Token状态: ' + (token ? '已设置 (' + token.substring(0, 20) + '...)' : '未设置'), token ? 'success' : 'info');
+        };
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@7/lib/stomp.min.js"></script>
+</body>
+</html>

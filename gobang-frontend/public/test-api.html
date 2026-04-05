@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result.success { border-left: 4px solid #4CAF50; }
+        .result.error { border-left: 4px solid #f44336; }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.ok { background: #d4edda; color: #155724; }
+        .status.fail { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🧪 五子棋API测试</h1>
+
+    <div class="test-section">
+        <h3>当前状态</h3>
+        <p>
+            <span class="status" id="tokenStatus">检查中...</span>
+            Token: <code id="tokenDisplay">未设置</code>
+        </p>
+        <p>
+            <span class="status" id="userIdStatus">检查中...</span>
+            用户ID: <code id="userIdDisplay">未设置</code>
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h3>1. 用户统计 API</h3>
+        <button onclick="testUserStats()">测试 /user/stats</button>
+        <div id="userStatsResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 排行榜 API</h3>
+        <button onclick="testRankAll()">测试 /rank/all</button>
+        <div id="rankResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 对局记录 API</h3>
+        <button onclick="testRecords()">测试 /records</button>
+        <div id="recordsResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. 手动设置Token</h3>
+        <input type="text" id="tokenInput" placeholder="粘贴JWT Token" style="width: 500px;">
+        <button onclick="setToken()">设置Token</button>
+    </div>
+
+    <script>
+        const BASE_URL = '/api';
+
+        // 初始化检查
+        function init() {
+            checkToken();
+            checkUserId();
+        }
+
+        // 检查Token
+        function checkToken() {
+            const token = localStorage.getItem('token');
+            const statusEl = document.getElementById('tokenStatus');
+            const displayEl = document.getElementById('tokenDisplay');
+
+            if (token) {
+                statusEl.className = 'status ok';
+                statusEl.textContent = '✅ 已设置';
+                displayEl.textContent = token.substring(0, 50) + '...';
+            } else {
+                statusEl.className = 'status fail';
+                statusEl.textContent = '❌ 未设置';
+                displayEl.textContent = '未设置';
+            }
+        }
+
+        // 检查用户ID
+        function checkUserId() {
+            const userId = localStorage.getItem('userId');
+            const statusEl = document.getElementById('userIdStatus');
+            const displayEl = document.getElementById('userIdDisplay');
+
+            if (userId) {
+                statusEl.className = 'status ok';
+                statusEl.textContent = '✅ 已设置';
+                displayEl.textContent = userId;
+            } else {
+                statusEl.className = 'status fail';
+                statusEl.textContent = '❌ 未设置';
+                displayEl.textContent = '未设置';
+            }
+        }
+
+        // 测试用户统计API
+        async function testUserStats() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                showResult('userStatsResult', '❌ 请先设置用户ID（登录后自动设置）', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/user/stats?userId=${userId}`);
+                const data = await response.json();
+
+                if (response.ok && data.code === 200) {
+                    showResult('userStatsResult', `✅ 成功\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult('userStatsResult', `❌ 失败 (${response.status})\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('userStatsResult', `❌ 错误\n${error.message}`, 'error');
+            }
+        }
+
+        // 测试排行榜API
+        async function testRankAll() {
+            try {
+                const response = await fetch(`${BASE_URL}/rank/all`);
+                const data = await response.json();
+
+                if (response.ok && data.code === 200) {
+                    showResult('rankResult', `✅ 成功\n找到 ${data.data?.length || 0} 位玩家\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult('rankResult', `❌ 失败 (${response.status})\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('rankResult', `❌ 错误\n${error.message}`, 'error');
+            }
+        }
+
+        // 测试对局记录API
+        async function testRecords() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                showResult('recordsResult', '❌ 请先设置用户ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/records?userId=${userId}`);
+                const data = await response.json();
+
+                if (response.ok && data.code === 200) {
+                    showResult('recordsResult', `✅ 成功\n找到 ${data.data?.list?.length || 0} 场对局\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult('recordsResult', `❌ 失败 (${response.status})\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('recordsResult', `❌ 错误\n${error.message}`, 'error');
+            }
+        }
+
+        // 设置Token
+        function setToken() {
+            const token = document.getElementById('tokenInput').value.trim();
+            if (token) {
+                localStorage.setItem('token', token);
+                checkToken();
+                alert('Token已设置！');
+            }
+        }
+
+        // 显示结果
+        function showResult(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `result ${type}`;
+            el.style.display = 'block';
+        }
+
+        // 页面加载时初始化
+        init();
+    </script>
+</body>
+</html>

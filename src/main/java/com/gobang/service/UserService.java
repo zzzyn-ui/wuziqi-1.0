@@ -1,175 +1,69 @@
 package com.gobang.service;
 
-import com.gobang.mapper.UserMapper;
-import com.gobang.mapper.UserStatsMapper;
+import com.gobang.model.dto.LoginDto;
+import com.gobang.model.dto.RegisterDto;
 import com.gobang.model.entity.User;
-import com.gobang.model.entity.UserStats;
-import org.apache.ibatis.session.SqlSession;
-import org.apache.ibatis.session.SqlSessionFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 /**
- * 用户服务
+ * 用户服务接口
+ * 定义登录、注册、更新积分等方法
  */
-public class UserService {
-
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-
-    /** 默认积分 */
-    private static final int DEFAULT_RATING = 1200;
-
-    private final SqlSessionFactory sqlSessionFactory;
-
-    public UserService(SqlSessionFactory sqlSessionFactory) {
-        this.sqlSessionFactory = sqlSessionFactory;
-    }
+public interface UserService {
 
     /**
-     * 根据ID获取用户
+     * 用户登录
+     *
+     * @param loginDto 登录请求DTO
+     * @return JWT Token
+     * @throws RuntimeException 用户不存在或密码错误
      */
-    public User getUserById(Long userId) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            return userMapper.findById(userId);
-        }
-    }
+    String login(LoginDto loginDto);
 
     /**
-     * 根据用户名获取用户
+     * 用户注册
+     *
+     * @param registerDto 注册请求DTO
+     * @throws RuntimeException 用户名已存在
      */
-    public User getUserByUsername(String username) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            return userMapper.findByUsername(username);
-        }
-    }
+    void register(RegisterDto registerDto);
 
     /**
-     * 获取用户统计
+     * 根据ID获取用户信息
+     *
+     * @param userId 用户ID
+     * @return 用户信息，不存在返回null
      */
-    public UserStats getUserStats(Long userId) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserStatsMapper statsMapper = session.getMapper(UserStatsMapper.class);
-            UserStats stats = statsMapper.findByUserId(userId);
-            if (stats == null) {
-                // 创建默认统计
-                stats = new UserStats(userId);
-                statsMapper.insert(stats);
-                session.commit();
-            }
-            return stats;
-        }
-    }
+    User getUserById(Long userId);
+
+    /**
+     * 根据Token获取用户信息
+     *
+     * @param token JWT Token
+     * @return 用户信息，token无效返回null
+     */
+    User getUserByToken(String token);
 
     /**
      * 更新用户积分
+     *
+     * @param userId 用户ID
+     * @param newRating 新积分
      */
-    public void updateUserRating(Long userId, int newRating, int expGained) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            User user = userMapper.findById(userId);
-            if (user != null) {
-                user.setRating(newRating);
-                user.addExp(expGained);
-                userMapper.updateRating(userId, newRating, user.getLevel(), user.getExp());
-                session.commit();
-                logger.info("Updated rating for user {}: {} (exp: +{})", userId, newRating, expGained);
-            }
-        }
-    }
+    void updateUserRating(Long userId, int newRating);
 
     /**
-     * 获取用户积分
+     * 增加用户经验值
+     *
+     * @param userId 用户ID
+     * @param exp 经验值
      */
-    public int getRating(Long userId) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            User user = userMapper.findById(userId);
-            return user != null ? user.getRating() : DEFAULT_RATING;
-        } catch (Exception e) {
-            logger.error("Failed to get rating for user {}", userId, e);
-            return DEFAULT_RATING;
-        }
-    }
-
-    /**
-     * 更新用户积分（不计算经验值）
-     */
-    public void updateRating(Long userId, int newRating) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            User user = userMapper.findById(userId);
-            if (user != null) {
-                userMapper.updateRating(userId, newRating, user.getLevel(), user.getExp());
-                session.commit();
-                logger.info("Updated rating for user {} to {}", userId, newRating);
-            }
-        } catch (Exception e) {
-            logger.error("Failed to update rating for user {}", userId, e);
-        }
-    }
+    void addUserExp(Long userId, int exp);
 
     /**
      * 更新用户状态
+     *
+     * @param userId 用户ID
+     * @param status 状态：0=离线, 1=在线, 2=游戏中, 3=匹配中
      */
-    public void updateUserStatus(Long userId, int status) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            userMapper.updateStatus(userId, status);
-            session.commit();
-        }
-    }
-
-    /**
-     * 获取排行榜
-     */
-    public List<User> getLeaderboard(int limit) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            return userMapper.getLeaderboard(limit);
-        }
-    }
-
-    /**
-     * 获取在线用户排行榜
-     */
-    public List<User> getOnlineLeaderboard(int limit) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            return userMapper.getOnlineLeaderboard(limit);
-        }
-    }
-
-    /**
-     * 创建或获取用户统计
-     */
-    public UserStats getOrCreateStats(Long userId) {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserStatsMapper statsMapper = session.getMapper(UserStatsMapper.class);
-            UserStats stats = statsMapper.findByUserId(userId);
-            if (stats == null) {
-                stats = new UserStats(userId);
-                statsMapper.insert(stats);
-                session.commit();
-            }
-            return stats;
-        }
-    }
-
-    /**
-     * 获取在线用户数量
-     */
-    public int getOnlineUserCount() {
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            UserMapper userMapper = session.getMapper(UserMapper.class);
-            Integer count = userMapper.countOnlineUsers();
-            return count != null ? count : 0;
-        } catch (Exception e) {
-            logger.error("Failed to get online user count", e);
-            return 0;
-        }
-    }
+    void updateUserStatus(Long userId, int status);
 }
