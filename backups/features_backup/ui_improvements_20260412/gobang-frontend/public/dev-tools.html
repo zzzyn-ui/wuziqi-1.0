@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开发工具 - 五子棋</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .tool-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .tool-card:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        .tool-card h3 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+        .tool-card p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .tag.api { background: #e3f2fd; color: #1976d2; }
+        .tag.ws { background: #fff3e0; color: #f57c00; }
+        .tag.test { background: #e8f5e9; color: #388e3c; }
+        .tag.dev { background: #fce4ec; color: #c2185b; }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ 五子棋开发工具</h1>
+        <p class="subtitle">API测试、WebSocket调试和诊断工具</p>
+
+        <div class="section">
+            <h2>API 测试工具</h2>
+            <div class="tools-grid">
+                <a href="/test-api.html" class="tool-card">
+                    <h3>API 测试</h3>
+                    <p>测试REST API接口功能 <span class="tag api">API</span></p>
+                </a>
+                <a href="/test.html" class="tool-card">
+                    <h3>综合测试</h3>
+                    <p>完整功能测试页面 <span class="tag test">测试</span></p>
+                </a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>WebSocket 测试工具</h2>
+            <div class="tools-grid">
+                <a href="/websocket-test.html" class="tool-card">
+                    <h3>WebSocket 测试</h3>
+                    <p>STOMP WebSocket 连接测试 <span class="tag ws">WS</span></p>
+                </a>
+                <a href="/ws-debug.html" class="tool-card">
+                    <h3>WS 调试工具</h3>
+                    <p>WebSocket 消息调试 <span class="tag dev">调试</span></p>
+                </a>
+                <a href="/test-ws.html" class="tool-card">
+                    <h3>WS 连接测试</h3>
+                    <p>原生 WebSocket 测试 <span class="tag ws">WS</span></p>
+                </a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>匹配系统测试</h2>
+            <div class="tools-grid">
+                <a href="/test-match.html" class="tool-card">
+                    <h3>匹配测试</h3>
+                    <p>匹配队列和房间测试 <span class="tag test">测试</span></p>
+                </a>
+                <a href="/test-connection.html" class="tool-card">
+                    <h3>连接测试</h3>
+                    <p>后端连接状态检查 <span class="tag dev">诊断</span></p>
+                </a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>帮助文档</h2>
+            <div class="tools-grid">
+                <a href="/rules.html" class="tool-card">
+                    <h3>游戏规则</h3>
+                    <p>五子棋游戏规则说明</p>
+                </a>
+                <a href="/help.html" class="tool-card">
+                    <h3>帮助中心</h3>
+                    <p>游戏使用帮助</p>
+                </a>
+                <a href="/diagnose.html" class="tool-card">
+                    <h3>诊断工具</h3>
+                    <p>系统诊断和调试 <span class="tag dev">诊断</span></p>
+                </a>
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="/">← 返回游戏首页</a>
+        </div>
+    </div>
+</body>
+</html>

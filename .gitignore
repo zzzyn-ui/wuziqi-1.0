@@ -62,6 +62,13 @@ clear_*.sql
 node_modules/
 package-lock.json
 
+# 前端构建产物
+gobang-frontend/dist/
+gobang-frontend/.vite/
+
+# 旧项目目录
+gobang-backend/
+
 # 备份文件
 *.backup
 *_backup.*

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统诊断</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .section { margin-bottom: 30px; }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+        .test-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .test-item .label { font-weight: 600; color: #333; }
+        .test-item .result {
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .result.pending { background: #fff3cd; color: #856404; }
+        .result.success { background: #d4edda; color: #155724; }
+        .result.error { background: #f8d7da; color: #721c24; }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(118, 75, 162, 0.3);
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        #console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .console-line { padding: 2px 0; }
+        .console-info { color: #4ec9b0; }
+        .console-success { color: #6a9955; }
+        .console-error { color: #f48771; }
+        .console-warn { color: #dcdcaa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 系统诊断工具</h1>
+
+        <div class="section">
+            <h2>1. 服务器连接测试</h2>
+            <div class="test-item">
+                <span class="label">HTTP API (端口 8080)</span>
+                <span class="result pending" id="httpResult">待检测</span>
+            </div>
+            <div class="test-item">
+                <span class="label">WebSocket (端口 8083)</span>
+                <span class="result pending" id="wsResult">待检测</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>2. 本地存储检查</h2>
+            <div class="test-item">
+                <span class="label">authToken</span>
+                <span class="result pending" id="tokenResult">待检测</span>
+            </div>
+            <div class="test-item">
+                <span class="label">gobang_token</span>
+                <span class="result pending" id="gobangTokenResult">待检测</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. 匹配逻辑检查</h2>
+            <div class="test-item">
+                <span class="label">当前匹配代码版本</span>
+                <span class="result success" id="matchVersion">已禁用混合匹配</span>
+            </div>
+            <div class="test-item">
+                <span class="label">休闲模式队列键</span>
+                <span class="result success">match:q:c</span>
+            </div>
+            <div class="test-item">
+                <span class="label">竞技模式队列键</span>
+                <span class="result success">match:q:r</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>4. 诊断控制台</h2>
+            <div id="console"></div>
+        </div>
+
+        <div class="button-group">
+            <button onclick="runDiagnostics()">🔬 运行诊断</button>
+            <button onclick="clearAllData()">🗑️ 清除所有数据</button>
+            <button onclick="goBack()">🏠 返回首页</button>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const console = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = `console-line console-${type}`;
+            const time = new Date().toLocaleTimeString();
+            line.textContent = `[${time}] ${message}`;
+            console.insertBefore(line, console.firstChild);
+        }
+
+        function setResult(id, text, type) {
+            const el = document.getElementById(id);
+            el.textContent = text;
+            el.className = `result ${type}`;
+        }
+
+        async function runDiagnostics() {
+            log('开始系统诊断...', 'info');
+
+            // 1. 测试HTTP API
+            log('测试HTTP API连接...', 'info');
+            try {
+                const response = await fetch('http://localhost:8083/api/user/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('gobang_token') || ''}`
+                    }
+                });
+                if (response.ok || response.status === 401) {
+                    setResult('httpResult', '✓ 正常', 'success');
+                    log('HTTP API连接成功', 'success');
+                } else {
+                    setResult('httpResult', `✗ HTTP ${response.status}`, 'error');
+                    log(`HTTP API返回状态: ${response.status}`, 'warn');
+                }
+            } catch (error) {
+                setResult('httpResult', '✗ 连接失败', 'error');
+                log(`HTTP API连接失败: ${error.message}`, 'error');
+            }
+
+            // 2. 测试WebSocket
+            log('测试WebSocket连接...', 'info');
+            try {
+                const ws = new WebSocket('ws://localhost:8083/ws');
+                ws.onopen = () => {
+                    setResult('wsResult', '✓ 正常', 'success');
+                    log('WebSocket连接成功', 'success');
+                    ws.close();
+                };
+                ws.onerror = () => {
+                    setResult('wsResult', '✗ 连接失败', 'error');
+                    log('WebSocket连接失败', 'error');
+                };
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.CONNECTING) {
+                        setResult('wsResult', '✗ 超时', 'error');
+                        log('WebSocket连接超时', 'error');
+                        ws.close();
+                    }
+                }, 5000);
+            } catch (error) {
+                setResult('wsResult', '✗ 异常', 'error');
+                log(`WebSocket异常: ${error.message}`, 'error');
+            }
+
+            // 3. 检查本地存储
+            log('检查本地存储...', 'info');
+            const authToken = localStorage.getItem('authToken');
+            const gobangToken = localStorage.getItem('gobang_token');
+
+            if (authToken) {
+                setResult('tokenResult', '✓ 存在', 'success');
+                log(`authToken存在 (${authToken.substring(0, 20)}...)`, 'success');
+            } else {
+                setResult('tokenResult', '✗ 不存在', 'error');
+                log('authToken不存在', 'warn');
+            }
+
+            if (gobangToken) {
+                setResult('gobangTokenResult', '✓ 存在', 'success');
+                log(`gobang_token存在 (${gobangToken.substring(0, 20)}...)`, 'success');
+            } else {
+                setResult('gobangTokenResult', '✗ 不存在', 'error');
+                log('gobang_token不存在', 'warn');
+            }
+
+            log('诊断完成', 'success');
+        }
+
+        function clearAllData() {
+            if (confirm('确定要清除所有数据吗？这将删除登录凭证和所有本地数据。')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                log('所有本地数据已清除', 'success');
+
+                // 重新运行诊断
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // 页面加载时自动运行诊断
+        window.onload = () => {
+            log('诊断工具已加载', 'success');
+            log('点击"运行诊断"按钮开始检测', 'info');
+        };
+    </script>
+</body>
+</html>

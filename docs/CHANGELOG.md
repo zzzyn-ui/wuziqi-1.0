@@ -1,6 +1,6 @@
 # 更新日志
 
-本文档记录五子棋在线对战服务器的所有重要变更。
+本文档记录五子棋在线对战系统的所有重要变更。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
@@ -13,6 +13,33 @@
 - 支持自定义棋盘大小
 - 添加更多残局关卡
 - 移动端适配优化
+- 主题系统（暗色模式）
+
+---
+
+## [1.2.1] - 2026-04-12
+
+### 新增
+- ✨ **代码结构文档**: 新增详细的代码结构说明文档 (CODE_STRUCTURE.md)
+- ✨ **清理报告**: 新增代码清理报告文档 (CLEANUP_REPORT.md)
+
+### 修复
+- 🐛 **聊天历史加载**: 修复聊天历史不能每次加载的问题
+  - 将聊天历史从 user-queue 改为 topic-based 方式
+  - 后端使用 `/topic/chat/history/{userId}` 代替 `convertAndSendToUser`
+  - 前端订阅改为 `/topic/chat/history/${userId}`
+- 🐛 **重复消息**: 修复发送者看到两条聊天消息的问题
+
+### 改进
+- ♻️ **UI 优化**: 移除页脚的在线玩家和今日对局显示
+- ♻️ **UI 优化**: 移除排行榜的在线状态显示
+- ♻️ **代码清理**: 删除多余代码、日志文件和临时文件
+- 📝 **文档更新**: 更新所有项目文档以反映当前架构
+
+### 技术变更
+- 后端框架从 Netty 迁移到 Spring Boot 3 + Spring WebSocket
+- 前端从原生 JavaScript 迁移到 Vue 3 + TypeScript
+- WebSocket 协议从自定义协议改为 STOMP
 
 ---
 
@@ -88,33 +115,89 @@
 - **等级系统**: 基于积分的等级划分
 
 ### 技术栈
-- 后端: Java 17 + Netty 4.1
+- 后端: Java 17 + Spring Boot 3.x
+- 前端: Vue 3 + TypeScript
 - 数据库: MySQL 8.0
 - 缓存: Redis 7.0
 - 认证: JWT
-- 协议: WebSocket + HTTP REST API
+- 协议: WebSocket (STOMP) + HTTP REST API
 
 ---
 
 ## 版本说明
 
-### 版本号格式
+### 版本号规则
+
 - **主版本号**: 不兼容的 API 变更
 - **次版本号**: 向下兼容的功能新增
 - **修订号**: 向下兼容的问题修复
 
-### 变更类型
+### 更新类型
+
 - **新增**: 新功能
-- **改进**: 现有功能的改进
+- **改进**: 对现有功能的改进
 - **修复**: 问题修复
-- **移除**: 功能移除
-- **安全**: 安全相关修复
+- **安全**: 安全相关的修复
 - **弃用**: 即将移除的功能
 
 ---
 
-## 相关链接
+## 迁移指南
 
-- [API 文档](docs/API.md)
-- [快速开始](docs/QUICKSTART.md)
-- [部署指南](docs/ECS_DEPLOYMENT_GUIDE.md)
+### 从 1.1.x 升级到 1.2.1
+
+#### 后端变更
+```java
+// WebSocket 消息处理器变更
+// 旧版本: 自定义消息协议
+// 新版本: STOMP 协议
+
+// 聊天历史订阅变更
+// 旧版本: convertAndSendToUser(userId, "/queue/chat/history", response)
+// 新版本: convertAndSend("/topic/chat/history/" + userId, response)
+```
+
+#### 前端变更
+```typescript
+// WebSocket 连接变更
+// 旧版本: 原生 WebSocket
+// 新版本: @stomp/stompjs + SockJS
+
+// 聊天历史订阅变更
+// 旧版本: subscribe('/user/queue/chat/history', callback)
+// 新版本: subscribe('/topic/chat/history/${userId}', callback)
+```
+
+### 从 1.0.x 升级到 1.2.1
+
+由于从 Netty 迁移到 Spring Boot，需要完整重新部署：
+
+1. 备份数据库
+2. 停止旧版本服务
+3. 部署新版本代码
+4. 运行数据库迁移脚本
+5. 启动新版本服务
+
+详细步骤请参考 [QUICK_DEPLOY.md](QUICK_DEPLOY.md)
+
+---
+
+## 贡献指南
+
+如果你发现了 bug 或有新功能建议，请：
+
+1. 查阅 [贡献指南](CONTRIBUTING.md)
+2. 创建 Issue 描述问题
+3. 提交 Pull Request
+
+---
+
+## 致谢
+
+感谢所有贡献者和用户的支持！
+
+---
+
+## 许可证
+
+[MIT License](../LICENSE)

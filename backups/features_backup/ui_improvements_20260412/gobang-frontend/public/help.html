@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帮助中心 - 五子棋对战平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 50%, #ffd4c4 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.15);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #ff6b35;
+        }
+        .header h1 {
+            color: #ff6b35;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .help-section {
+            margin-bottom: 30px;
+        }
+        .help-section h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .help-section h2::before {
+            content: '📌';
+        }
+        .help-section p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        .help-section ul {
+            margin-left: 20px;
+            color: #666;
+            line-height: 1.8;
+        }
+        .help-section li {
+            margin-bottom: 8px;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: transform 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        }
+        .faq-item {
+            background: #fff8f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ff6b35;
+        }
+        .faq-item h3 {
+            color: #ff6b35;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .faq-item p {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 24px 20px;
+                border-radius: 12px;
+            }
+
+            .header {
+                margin-bottom: 24px;
+                padding-bottom: 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .help-section {
+                margin-bottom: 20px;
+            }
+
+            .help-section h2 {
+                font-size: 18px;
+            }
+
+            .faq-item {
+                padding: 15px;
+                margin-bottom: 12px;
+            }
+
+            .faq-item h3 {
+                font-size: 16px;
+            }
+
+            .faq-item p {
+                font-size: 14px;
+            }
+
+            .help-section ul {
+                margin-left: 15px;
+                font-size: 14px;
+            }
+
+            .help-section p {
+                font-size: 14px;
+            }
+
+            .back-btn {
+                padding: 10px 24px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            .container {
+                padding: 20px 16px;
+                border-radius: 10px;
+            }
+
+            .header {
+                margin-bottom: 20px;
+                padding-bottom: 12px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header p {
+                font-size: 13px;
+            }
+
+            .help-section {
+                margin-bottom: 16px;
+            }
+
+            .help-section h2 {
+                font-size: 16px;
+            }
+
+            .faq-item {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+
+            .faq-item h3 {
+                font-size: 15px;
+            }
+
+            .faq-item p {
+                font-size: 13px;
+            }
+
+            .help-section ul {
+                margin-left: 12px;
+                font-size: 13px;
+            }
+
+            .help-section p {
+                font-size: 13px;
+            }
+
+            .back-btn {
+                padding: 8px 20px;
+                font-size: 13px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 帮助中心</h1>
+            <p>快速了解如何使用五子棋对战平台</p>
+        </div>
+
+        <div class="help-section">
+            <h2>如何开始游戏？</h2>
+            <div class="faq-item">
+                <h3>人机对战</h3>
+                <p>点击首页的"人机对战"卡片，选择难度（简单、中等、困难），即可开始与AI对弈。黑棋先行。</p>
+            </div>
+            <div class="faq-item">
+                <h3>在线对战</h3>
+                <p>点击"在线对战"，选择模式后系统自动匹配对手。休闲模式无需积分，竞技模式影响段位。</p>
+            </div>
+            <div class="faq-item">
+                <h3>本地对战</h3>
+                <p>适合两人面对面游戏。可选择"创建房间"或"加入房间"与好友对弈。</p>
+            </div>
+        </div>
+
+        <div class="help-section">
+            <h2>游戏规则</h2>
+            <ul>
+                <li>棋盘为 15×15 网格</li>
+                <li>双方轮流落子，黑棋先行</li>
+                <li>先在横、竖、斜任意方向连成五子者获胜</li>
+                <li>AI 难度越高，思考时间越长，棋力越强</li>
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h2>常见问题</h2>
+            <div class="faq-item">
+                <h3>如何注册账号？</h3>
+                <p>点击顶部橙色卡片右侧的登录按钮，进入登录页面后点击"注册账号"。</p>
+            </div>
+            <div class="faq-item">
+                <h3>忘记密码怎么办？</h3>
+                <p>在登录页面点击"忘记密码"，通过注册邮箱找回。</p>
+            </div>
+            <div class="faq-item">
+                <h3>如何查看对局记录？</h3>
+                <p>点击左侧导航或顶部导航的"对局记录"，可查看所有历史对局。点击任意记录可进入复盘页面，支持前进、后退、变速回放等功能。</p>
+            </div>
+            <div class="faq-item">
+                <h3>积分和段位如何计算？</h3>
+                <p>竞技模式下获胜加分，失败扣分。段位从"棋手"到"九段"逐级晋升，具体规则请查看"游戏规则"页面。</p>
+            </div>
+            <div class="faq-item">
+                <h3>对局超时怎么判罚？</h3>
+                <p>每步棋有2分钟思考时间，每方总思考时间5分钟。超时将自动判负。请在倒计时结束前完成落子。</p>
+            </div>
+            <div class="faq-item">
+                <h3>如何使用观战模式？</h3>
+                <p>点击"观战模式"进入观战列表，选择正在进行的对局即可观战。观战者只能观看，无法参与对局。</p>
+            </div>
+            <div class="faq-item">
+                <h3>如何添加好友？</h3>
+                <p>点击"好友列表"，通过对方用户名或用户ID发送好友请求。对方接受后即可进行私聊。</p>
+            </div>
+            <div class="faq-item">
+                <h3>残局挑战是什么？</h3>
+                <p>残局挑战是精选的棋局残局，你需要找到唯一的制胜一手。完成挑战可获得积分奖励，难度越高奖励越多。</p>
+            </div>
+        </div>
+
+        <div class="help-section">
+            <h2>联系我们</h2>
+            <p>如有其他问题，欢迎通过以下方式联系我们：</p>
+            <ul>
+                <li>📧 邮箱：support@gobang.com（24小时内回复）</li>
+                <li>📝 意见反馈：点击"联系我们"页面提交在线留言</li>
+                <li>📱 在线客服：服务时间 9:00-22:00</li>
+            </ul>
+        </div>
+
+        <button class="back-btn" onclick="window.location.href='index.html'">返回首页</button>
+    </div>
+</body>
+</html>

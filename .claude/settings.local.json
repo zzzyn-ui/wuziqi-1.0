@@ -133,7 +133,20 @@
       "Bash(npx vue-tsc:*)",
       "Bash(npx eslint:*)",
       "Bash(xargs -I {} taskkill //F //PID {})",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(mvnw.cmd spring-boot:run:*)",
+      "Bash(vite build:*)",
+      "Bash(npx vite:*)",
+      "Bash(/d/wuziqi/backups/backup_20260406_154236/README.txt:*)",
+      "Bash(mvnw.cmd clean:*)",
+      "Bash(\"D:\\\\ruanjian\\\\maven\\\\apache-maven-3.9.13\\\\bin\\\\mvn.cmd\" clean:*)",
+      "Bash(\"C:/Users/庄彦娜/AppData/Local/Programs/IDEA/bin/idea.sh\" compile:*)",
+      "Bash(find target:*)",
+      "Bash(not exist:*)",
+      "Bash(xargs -I {} cmd.exe /c \"taskkill /F /PID {}\")",
+      "Bash(\"/d/安装包/python/py/Scripts/mysql.exe\":*)",
+      "Bash(do:*)",
+      "Bash(mv backup_20260412_161553:*)"
     ]
   }
 }
