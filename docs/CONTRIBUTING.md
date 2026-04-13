@@ -101,12 +101,12 @@ CREATE DATABASE gobang CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 执行 SQL 脚本：
 ```bash
-mysql -u root -p gobang < src/main/resources/sql/schema.sql
+mysql -u root -p gobang < backend/src/main/resources/schema.sql
 ```
 
 #### 4. 修改配置
 
-编辑 `src/main/resources/application.yml`:
+编辑 `backend/src/main/resources/application.yml`:
 
 ```yaml
 database:
@@ -334,16 +334,16 @@ Closes #issue_number
 ### 项目结构
 
 ```
-src/main/java/com/gobang/
-├── GobangServer.java          # 主启动类
+backend/src/main/java/com/gobang/
+├── GobangApplication.java    # 主启动类
 ├── config/                    # 配置类
 ├── core/                      # 核心逻辑
 │   ├── game/                 # 游戏逻辑
-│   ├── netty/                # 网络层
-│   ├── protocol/             # 协议定义
+│   ├── match/                # 匹配系统
 │   ├── room/                 # 房间管理
-│   └── social/               # 社交功能
+│   └── rating/               # 积分计算
 ├── service/                   # 业务服务
+├── controller/                # 控制器
 ├── mapper/                    # 数据访问
 └── util/                      # 工具类
 ```

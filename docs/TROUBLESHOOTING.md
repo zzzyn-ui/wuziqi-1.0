@@ -49,7 +49,7 @@ lsof -i:8083
 3. **配置文件错误**
 ```bash
 # 检查配置文件语法
-cat src/main/resources/application.yml
+cat backend/src/main/resources/application.yml
 ```
 
 **解决方案**: 检查 YAML 语法是否正确，注意缩进
@@ -139,7 +139,7 @@ database:
 
 1. **导入表结构**
 ```bash
-mysql -u root -p gobang < src/main/resources/sql/schema.sql
+mysql -u root -p gobang < backend/src/main/resources/schema.sql
 ```
 
 2. **验证表已创建**

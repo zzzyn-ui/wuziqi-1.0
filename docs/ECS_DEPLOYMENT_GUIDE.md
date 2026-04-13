@@ -208,7 +208,7 @@ EXIT;
 
 ```bash
 # 方法一：从本地上传
-scp src/main/resources/sql/schema.sql root@your_ecs_ip:/root/
+scp backend/src/main/resources/schema.sql root@your_ecs_ip:/root/
 
 # 方法二：在 ECS 上创建
 sudo nano /root/schema.sql

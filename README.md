@@ -150,12 +150,12 @@ npm run dev
 mysql -u root -p -e "CREATE DATABASE gobang CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 导入表结构
-mysql -u root -p gobang < src/main/resources/db/migration/V1__init_schema.sql
+mysql -u root -p gobang < backend/src/main/resources/schema.sql
 ```
 
 #### 3. 配置后端
 
-编辑 `src/main/resources/application.yml`：
+编辑 `backend/src/main/resources/application.yml`：
 
 ```yaml
 spring:
@@ -177,8 +177,8 @@ jwt:
 #### 4. 启动后端
 
 ```bash
-# 进入项目目录
-cd D:\wuziqi
+# 进入后端目录
+cd backend
 
 # 编译并运行
 mvn clean install
@@ -191,7 +191,7 @@ mvn spring-boot:run
 
 ```bash
 # 进入前端目录
-cd gobang-frontend
+cd frontend
 
 # 安装依赖
 npm install
@@ -207,96 +207,55 @@ npm run dev
 ## 项目结构
 
 ```
-gobang/
-├── src/                               # 后端源代码
-│   └── main/
-│       ├── java/com/gobang/
-│       │   ├── GobangApplication.java # Spring Boot 启动类
-│       │   ├── config/                 # 配置类 (8)
-│       │   │   ├── SecurityConfig.java     # 安全配置
-│       │   │   ├── WebSocketConfig.java    # WebSocket配置
-│       │   │   └── ...
-│       │   ├── controller/             # 控制器 (10)
-│       │   │   ├── AuthController.java     # 认证
-│       │   │   ├── WebSocketController.java # WebSocket消息处理
-│       │   │   └── ...
-│       │   ├── service/                # 服务层
-│       │   │   ├── UserService.java        # 用户服务
-│       │   │   ├── GameService.java        # 游戏服务
-│       │   │   ├── ChatService.java        # 聊天服务
-│       │   │   └── ...
-│       │   ├── mapper/                 # 数据访问层 (12)
-│       │   │   ├── UserMapper.java         # 用户
-│       │   │   ├── GameRecordMapper.java   # 对局记录
-│       │   │   └── ...
-│       │   ├── model/                  # 数据模型
-│       │   │   ├── entity/                # 实体类 (11)
-│       │   │   ├── dto/                   # DTO (8)
-│       │   │   └── enums/                 # 枚举
-│       │   ├── core/                   # 核心逻辑
-│       │   │   ├── game/                  # 游戏逻辑
-│       │   │   │   ├── Board.java           # 棋盘
-│       │   │   │   ├── GameState.java       # 游戏状态
-│       │   │   │   └── WinChecker.java      # 胜负判定
-│       │   │   ├── match/                 # 匹配系统
-│       │   │   │   └── SpringMatchMaker.java
-│       │   │   ├── room/                  # 房间管理
-│       │   │   │   └── RoomManager.java
-│       │   │   ├── rating/                # 积分计算
-│       │   │   │   └── ELOCalculator.java
-│       │   │   └── security/              # 安全组件
-│       │   ├── websocket/              # WebSocket
-│       │   │   └── interceptor/
-│       │   │       └── JwtChannelInterceptor.java
-│       │   └── util/                   # 工具类 (9)
-│       └── resources/
-│           ├── application.yml        # 应用配置
-│           ├── logback.xml            # 日志配置
-│           └── db/migration/          # 数据库迁移脚本
-├── gobang-frontend/                   # 前端源代码
+wuziqi/
+├── backend/                          # 后端项目 (Spring Boot)
 │   ├── src/
-│   │   ├── main.ts                    # 应用入口
-│   │   ├── App.vue                    # 根组件
-│   │   ├── views/                     # 页面组件 (18)
-│   │   │   ├── LoginView.vue            # 登录
-│   │   │   ├── HomeView.vue             # 主页
-│   │   │   ├── GameView.vue             # 游戏页面
-│   │   │   ├── MatchView.vue            # 匹配页面
-│   │   │   ├── FriendsView.vue          # 好友页面
-│   │   │   └── ...
-│   │   ├── components/
-│   │   │   └── shared/                 # 共享组件 (8)
-│   │   │       ├── GameBoard.vue         # 棋盘组件
-│   │   │       ├── ActionButton.vue      # 操作按钮
-│   │   │       └── ...
-│   │   ├── api/                       # API 层
-│   │   │   ├── http.ts                  # HTTP 封装
-│   │   │   ├── websocket.ts             # WebSocket 封装
-│   │   │   └── services.ts              # API 服务
-│   │   ├── store/                     # 状态管理
-│   │   │   └── modules/
-│   │   │       ├── user.ts               # 用户状态
-│   │   │       ├── game.ts               # 游戏状态
-│   │   │       └── room.ts               # 房间状态
-│   │   ├── router/                    # 路由配置
-│   │   ├── types/                     # TypeScript 类型
-│   │   └── composables/               # 组合式函数
-│   ├── public/                       # 静态资源
-│   ├── package.json                  # npm 配置
-│   ├── vite.config.ts                # Vite 配置
-│   └── tsconfig.json                 # TypeScript 配置
+│   │   └── main/
+│   │       ├── java/com/gobang/
+│   │       │   ├── GobangApplication.java # Spring Boot 启动类
+│   │       │   ├── config/                 # 配置类
+│   │       │   ├── controller/             # 控制器
+│   │       │   ├── service/                # 服务层
+│   │       │   ├── mapper/                 # 数据访问层
+│   │       │   ├── model/                  # 数据模型
+│   │       │   │   ├── entity/             # 实体类
+│   │       │   │   ├── dto/                # DTO
+│   │       │   │   └── enums/              # 枚举
+│   │       │   ├── core/                   # 核心逻辑
+│   │       │   │   ├── game/               # 游戏逻辑
+│   │       │   │   ├── match/              # 匹配系统
+│   │       │   │   ├── room/               # 房间管理
+│   │       │   │   └── rating/             # 积分计算
+│   │       │   └── util/                   # 工具类
+│   │       └── resources/
+│   │           ├── application.yml        # 应用配置
+│   │           ├── schema.sql             # 数据库结构
+│   │           └── data.sql               # 初始数据
+│   ├── pom.xml                          # Maven 配置
+│   └── Dockerfile                       # Docker 镜像
+├── frontend/                         # 前端项目 (Vue 3)
+│   ├── src/
+│   │   ├── main.ts                     # 应用入口
+│   │   ├── App.vue                     # 根组件
+│   │   ├── views/                      # 页面组件
+│   │   ├── components/                 # 组件
+│   │   ├── api/                        # API 层
+│   │   ├── store/                      # 状态管理
+│   │   ├── router/                     # 路由配置
+│   │   └── types/                      # TypeScript 类型
+│   ├── package.json                   # npm 配置
+│   └── vite.config.ts                 # Vite 配置
 ├── docs/                             # 文档目录
 │   ├── API.md                        # API 文档
 │   ├── CODE_STRUCTURE.md             # 代码结构详解
 │   ├── QUICKSTART.md                 # 快速开始
 │   ├── USER_GUIDE.md                 # 用户指南
-│   ├── TROUBLESHOOTING.md            # 故障排查
-│   └── ...
-├── backups/                          # 备份目录
-│   └── features_backup/              # 功能模块备份
-├── pom.xml                          # Maven 配置
+│   └── TROUBLESHOOTING.md            # 故障排查
+├── scripts/                          # 脚本目录
+│   ├── build.sh                     # 构建脚本
+│   ├── dev.sh                       # 开发启动脚本
+│   └── deploy.sh                    # 部署脚本
 ├── docker-compose.yml               # Docker 编排配置
-├── Dockerfile                       # Docker 镜像配置
 └── README.md                        # 项目说明
 ```
 
@@ -540,14 +499,14 @@ docker-compose down
 
 ```bash
 # 1. 在 views/ 目录创建新组件
-cd gobang-frontend/src/views
+cd frontend/src/views
 vue create NewFeatureView.vue
 
 # 2. 添加路由配置
 # 编辑 router/index.ts
 
 # 3. 创建后端控制器
-# 在 controller/ 目录创建对应的控制器
+# 在 backend/src/main/java/com/gobang/controller/ 创建对应的控制器
 ```
 
 ### 代码规范

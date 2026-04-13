@@ -36,8 +36,8 @@ git add .
 # 或者添加特定文件
 git add README.md
 git add docs/
-git add src/
-git add gobang-frontend/
+git add backend/
+git add frontend/
 ```
 
 ### 1.3 提交更改
@@ -318,7 +318,7 @@ FLUSH PRIVILEGES;
 EXIT;
 
 # 导入表结构
-mysql -u gobang -p gobang < /opt/gobang/src/main/resources/db/migration/V1__init_schema.sql
+mysql -u gobang -p gobang < /opt/gobang/backend/src/main/resources/schema.sql
 ```
 
 #### 2.2.3 安装 Redis
@@ -402,7 +402,7 @@ curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
 yum install -y nodejs
 
 # 2. 进入前端目录
-cd /opt/gobang/gobang-frontend
+cd /opt/gobang/frontend
 
 # 3. 安装依赖
 npm install
@@ -415,7 +415,7 @@ nano /etc/nginx/sites-available/gobang
 
 # 修改前端静态文件路径：
 # location / {
-#     root /opt/gobang/gobang-frontend/dist;
+#     root /opt/gobang/frontend/dist;
 #     try_files $uri $uri/ /index.html;
 # }
 
@@ -538,7 +538,7 @@ systemctl status mysql
 mysql -u gobang -p -h localhost
 
 # 检查配置文件
-cat /opt/gobang/src/main/resources/application.yml
+cat /opt/gobang/backend/src/main/resources/application.yml
 ```
 
 ### 3.4 性能优化
@@ -629,7 +629,7 @@ mvn clean package -DskipTests
 systemctl start gobang
 
 # 前端
-cd gobang-frontend
+cd frontend
 npm run build
 systemctl restart nginx
 ```

@@ -239,7 +239,7 @@ FLUSH PRIVILEGES;
 
 # 导入表结构
 USE gobang;
-source D:/wuziqi/src/main/resources/db/migration/V1__init_schema.sql;
+source D:/wuziqi/backend/src/main/resources/schema.sql;
 ```
 
 ### 2. 配置 Redis
@@ -258,7 +258,7 @@ redis-server.exe
 
 ### 3. 配置后端
 
-编辑 `src/main/resources/application.yml`:
+编辑 `backend/src/main/resources/application.yml`:
 
 ```yaml
 spring:
@@ -285,7 +285,7 @@ server:
 
 ### 4. 配置前端
 
-创建 `gobang-frontend/.env.development`:
+创建 `frontend/.env.development`:
 
 ```env
 # API 地址
@@ -302,8 +302,8 @@ VITE_WS_BASE_URL=ws://localhost:8080
 ### 启动后端
 
 ```bash
-# 进入项目目录
-cd D:\wuziqi
+# 进入后端目录
+cd backend
 
 # 方式一：使用 Maven 运行
 mvn clean install
@@ -320,7 +320,7 @@ java -jar target/gobang-1.0.0.jar
 
 ```bash
 # 进入前端目录
-cd gobang-frontend
+cd frontend
 
 # 安装依赖（首次运行）
 npm install
@@ -450,7 +450,7 @@ redis-cli ping
 curl http://localhost:8080/api/health
 
 # 检查前端代理配置
-# gobang-frontend/vite.config.ts
+# frontend/vite.config.ts
 ```
 
 ### Q5: Maven 依赖下载失败

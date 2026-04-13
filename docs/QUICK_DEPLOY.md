@@ -102,10 +102,10 @@ ls -lh target/gobang-server-1.0.0.jar
 
 ```bash
 # 在本地执行
-scp target/gobang-server-1.0.0.jar root@your_ecs_ip:/opt/gobang/
+scp backend/target/gobang-server-1.0.0.jar root@your_ecs_ip:/opt/gobang/
 
 # 上传配置文件（可选）
-scp src/main/resources/application.yml root@your_ecs_ip:/opt/gobang/
+scp backend/src/main/resources/application.yml root@your_ecs_ip:/opt/gobang/
 ```
 
 ### 方式二：WinSCP（Windows 推荐）

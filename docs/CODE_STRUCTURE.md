@@ -4,30 +4,30 @@
 
 ```
 D:\wuziqi/
-├── src/                        # 后端源代码（Java + Spring Boot）
-├── gobang-frontend/            # 前端源代码（Vue 3 + TypeScript）
+├── backend/                    # 后端源代码（Java + Spring Boot）
+│   ├── src/
+│   ├── pom.xml
+│   └── Dockerfile
+├── frontend/                   # 前端源代码（Vue 3 + TypeScript）
+│   ├── src/
+│   ├── package.json
+│   └── vite.config.ts
 ├── docs/                       # 项目文档
-├── logs/                       # 运行日志
-├── backups/                    # 代码备份
-├── pom.xml                     # Maven项目配置文件
+├── scripts/                    # 部署脚本
 ├── docker-compose.yml          # Docker容器编排配置
-├── Dockerfile                  # Docker镜像构建配置
 ├── .env.example                # 环境变量示例
 ├── .gitignore                  # Git忽略文件配置
 ├── .dockerignore               # Docker忽略文件配置
-├── README.md                   # 项目说明文档
-├── FILES_REFERENCE.md          # 文件参考文档
-├── PROJECT_STRUCTURE.md        # 项目结构文档
-└── CLEANUP_REPORT.md           # 代码清理报告
+└── README.md                   # 项目说明文档
 ```
 
 ---
 
-## 🔧 后端代码结构 (src/)
+## 🔧 后端代码结构 (backend/src/)
 
 ### 主程序入口
 ```
-src/main/java/com/gobang/
+backend/src/main/java/com/gobang/
 └── GobangApplication.java      # Spring Boot应用启动类
     # 作用：程序的入口点，启动Spring Boot应用，初始化所有组件
 ```
@@ -361,11 +361,11 @@ resources/
 
 ---
 
-## 🎨 前端代码结构 (gobang-frontend/)
+## 🎨 前端代码结构 (frontend/)
 
 ### 主程序入口
 ```
-gobang-frontend/
+frontend/
 ├── index.html                  # HTML入口文件
     # 作用：页面的HTML结构，挂载Vue应用
 
