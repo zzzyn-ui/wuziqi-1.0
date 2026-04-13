@@ -17,6 +17,33 @@
 
 ---
 
+## 项目结构
+
+```
+wuziqi/
+├── backend/                 # 后端项目 (Spring Boot)
+│   ├── src/                # 源代码
+│   ├── pom.xml             # Maven 配置
+│   └── Dockerfile          # Docker 镜像
+├── frontend/               # 前端项目 (Vue 3)
+│   ├── src/                # 源代码
+│   ├── package.json        # npm 配置
+│   └── vite.config.ts      # Vite 配置
+├── docs/                   # 项目文档
+│   ├── API.md             # API 接口文档
+│   ├── CODE_STRUCTURE.md  # 代码结构说明
+│   └── QUICK_DEPLOY.md    # 快速部署指南
+├── scripts/                # 部署脚本
+│   ├── build.sh           # 构建脚本
+│   ├── dev.sh             # 开发启动脚本
+│   └── deploy.sh          # 部署脚本
+├── docker-compose.yml      # Docker 编排配置
+├── .gitignore             # Git 忽略配置
+└── README.md              # 项目说明
+```
+
+---
+
 ## 项目简介
 
 一个功能完整的五子棋在线对战平台，支持实时双人对战、人机对战、好友系统、观战模式、聊天系统等功能。采用 Spring Boot 3 + Vue 3 技术栈，使用 WebSocket (STOMP) 实现实时通信，配合 MySQL 和 Redis 实现数据持久化和缓存。
@@ -72,30 +99,41 @@
 ### 方式一：Docker 部署（推荐）
 
 ```bash
-# 克隆项目
-git clone https://github.com/your-username/gobang.git
-cd gobang
-
-# 启动所有服务（MySQL、Redis、后端、前端）
+# 启动所有服务
 docker-compose up -d
 
-# 访问应用
-# 前端: http://localhost:5173
-# 后端: http://localhost:8080
+# 查看日志
+docker-compose logs -f
 ```
 
 ### 方式二：本地开发
 
-#### 1. 环境准备
+#### 使用脚本启动（推荐）
 
 ```bash
-# 安装 JDK 17+
-# 下载: https://adoptium.net/
+# 一键启动前后端
+./scripts/dev.sh
+```
 
-# 安装 Maven 3.6+
-# 下载: https://maven.apache.org/
+#### 手动启动
 
-# 安装 Node.js 18+
+```bash
+# 启动后端
+cd backend
+mvn spring-boot:run
+
+# 启动前端（新终端）
+cd frontend
+npm run dev
+```
+
+#### 环境要求
+
+- JDK 17+
+- Maven 3.6+
+- Node.js 18+
+- MySQL 8.0+
+- Redis 7.0+
 # 下载: https://nodejs.org/
 
 # 安装 MySQL 8.0+

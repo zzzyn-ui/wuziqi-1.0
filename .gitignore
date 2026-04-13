@@ -56,20 +56,25 @@ decode-*.js
 puzzle_*.sql
 puzzle_*.json
 reset-*.bat
-clear_*.sql
+clear-*.sql
 
 # Node modules (如果有前端开发)
 node_modules/
 package-lock.json
 
 # 前端构建产物
-gobang-frontend/dist/
-gobang-frontend/.vite/
+frontend/dist/
+frontend/.vite/
+frontend/node_modules/
+
+# 后端构建产物
+backend/target/
+backend/*.log
 
 # 旧项目目录
+gobang-frontend/
 gobang-backend/
 
 # 备份文件
 *.backup
 *_backup.*
-
