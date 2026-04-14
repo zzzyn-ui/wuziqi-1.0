@@ -255,44 +255,18 @@ const handleMove = (x: number, y: number) => {
 // AI落子
 const makeAIMove = async () => {
   try {
-    // TODO: 调用后端AI API
-    // const response = await http.post('/api/pve/move', {
-    //   board: board.value,
-    //   difficulty: selectedDifficulty.value
-    // })
-    // const { x, y } = response.data
-
-    // 获取所有空位
-    const emptyCells: { x: number; y: number }[] = []
-    for (let i = 0; i < 15; i++) {
-      for (let j = 0; j < 15; j++) {
-        if (board.value[i][j] === 0) {
-          emptyCells.push({ x: i, y: j })
-        }
-      }
-    }
-
-    if (emptyCells.length === 0) return
-
     const aiColor = playerColor.value === 'black' ? 2 : 1
+    const playerColorNum = playerColor.value === 'black' ? 1 : 2
+
+    // 根据难度选择AI策略
     let move: { x: number; y: number }
 
-    // 黑棋先手第一步：在中心区域随机选择
-    if (moveHistory.value.length === 0 && aiColor === 1) {
-      // 在中心5x5区域随机选择 (位置6-10)
-      const centerArea: { x: number; y: number }[] = []
-      for (let i = 5; i <= 9; i++) {
-        for (let j = 5; j <= 9; j++) {
-          if (board.value[i][j] === 0) {
-            centerArea.push({ x: i, y: j })
-          }
-        }
-      }
-      move = centerArea[Math.floor(Math.random() * centerArea.length)]
+    if (selectedDifficulty.value === 'easy') {
+      move = getEasyAIMove(aiColor, playerColorNum)
+    } else if (selectedDifficulty.value === 'medium') {
+      move = getMediumAIMove(aiColor, playerColorNum)
     } else {
-      // 其他情况：优先选择中间位置，否则随机
-      const centerCell = emptyCells.find(c => c.x >= 6 && c.x <= 8 && c.y >= 6 && c.y <= 8)
-      move = centerCell || emptyCells[Math.floor(Math.random() * emptyCells.length)]
+      move = getHardAIMove(aiColor, playerColorNum)
     }
 
     board.value[move.x][move.y] = aiColor
@@ -322,6 +296,279 @@ const makeAIMove = async () => {
   } catch (error) {
     ElMessage.error('AI落子失败')
   }
+}
+
+// 简单AI：基础攻防逻辑
+const getEasyAIMove = (aiColor: number, playerColor: number): { x: number; y: number } => {
+  const emptyCells: { x: number; y: number }[] = []
+  for (let i = 0; i < 15; i++) {
+    for (let j = 0; j < 15; j++) {
+      if (board.value[i][j] === 0) {
+        emptyCells.push({ x: i, y: j })
+      }
+    }
+  }
+
+  if (emptyCells.length === 0) return { x: 7, y: 7 }
+
+  // 第一步：天元或附近
+  if (moveHistory.value.length === 0 && aiColor === 1) {
+    return { x: 7, y: 7 }
+  }
+
+  // 检查是否有能获胜的位置
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = aiColor
+    if (checkWin(cell.x, cell.y, aiColor)) {
+      board.value[cell.x][cell.y] = 0
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 检查是否需要阻挡玩家获胜
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    if (checkWin(cell.x, cell.y, playerColor)) {
+      board.value[cell.x][cell.y] = 0
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 优先选择靠近已有棋子的位置
+  const candidates = emptyCells.filter(cell => hasNeighbor(cell.x, cell.y))
+  if (candidates.length > 0) {
+    return candidates[Math.floor(Math.random() * candidates.length)]
+  }
+
+  // 否则选择靠近中心的位置
+  return getBestCenterPosition(emptyCells)
+}
+
+// 中等AI：更完善的攻防逻辑
+const getMediumAIMove = (aiColor: number, playerColor: number): { x: number; y: number } => {
+  const emptyCells: { x: number; y: number }[] = []
+  for (let i = 0; i < 15; i++) {
+    for (let j = 0; j < 15; j++) {
+      if (board.value[i][j] === 0) {
+        emptyCells.push({ x: i, y: j })
+      }
+    }
+  }
+
+  if (emptyCells.length === 0) return { x: 7, y: 7 }
+
+  // 第一步：天元
+  if (moveHistory.value.length === 0 && aiColor === 1) {
+    return { x: 7, y: 7 }
+  }
+
+  let bestMove = emptyCells[0]
+  let bestScore = -Infinity
+
+  for (const cell of emptyCells) {
+    const score = evaluatePosition(cell.x, cell.y, aiColor, playerColor, false)
+    if (score > bestScore) {
+      bestScore = score
+      bestMove = cell
+    }
+  }
+
+  return bestMove
+}
+
+// 困难AI：高级攻防逻辑，考虑多重威胁
+const getHardAIMove = (aiColor: number, playerColor: number): { x: number; y: number } => {
+  const emptyCells: { x: number; y: number }[] = []
+  for (let i = 0; i < 15; i++) {
+    for (let j = 0; j < 15; j++) {
+      if (board.value[i][j] === 0) {
+        emptyCells.push({ x: i, y: j })
+      }
+    }
+  }
+
+  if (emptyCells.length === 0) return { x: 7, y: 7 }
+
+  // 第一步：天元
+  if (moveHistory.value.length === 0 && aiColor === 1) {
+    return { x: 7, y: 7 }
+  }
+
+  // 困难模式使用更深度的评估
+  let bestMove = emptyCells[0]
+  let bestScore = -Infinity
+
+  for (const cell of emptyCells) {
+    const score = evaluatePosition(cell.x, cell.y, aiColor, playerColor, true)
+    if (score > bestScore) {
+      bestScore = score
+      bestMove = cell
+    }
+  }
+
+  return bestMove
+}
+
+// 检查位置是否有相邻棋子
+const hasNeighbor = (x: number, y: number, distance: number = 2): boolean => {
+  for (let dx = -distance; dx <= distance; dx++) {
+    for (let dy = -distance; dy <= distance; dy++) {
+      if (dx === 0 && dy === 0) continue
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < 15 && ny >= 0 && ny < 15) {
+        if (board.value[nx][ny] !== 0) return true
+      }
+    }
+  }
+  return false
+}
+
+// 获取靠近中心的位置
+const getBestCenterPosition = (emptyCells: { x: number; y: number }[]): { x: number; y: number } => {
+  const center = 7
+  emptyCells.sort((a, b) => {
+    const distA = Math.abs(a.x - center) + Math.abs(a.y - center)
+    const distB = Math.abs(b.x - center) + Math.abs(b.y - center)
+    return distA - distB
+  })
+  return emptyCells[0]
+}
+
+// 评估位置的分数（核心AI逻辑）
+const evaluatePosition = (x: number, y: number, aiColor: number, playerColor: number, isHard: boolean): number => {
+  // 如果位置太孤立，给予较低分数
+  if (!hasNeighbor(x, y, isHard ? 2 : 1)) {
+    // 只在开局阶段允许孤立位置
+    if (moveHistory.value.length > 10) {
+      return -1000
+    }
+    // 越靠近中心越好
+    const centerDist = Math.abs(x - 7) + Math.abs(y - 7)
+    return 50 - centerDist * 2
+  }
+
+  let score = 0
+
+  // 评估AI落子此处的进攻价值
+  board.value[x][y] = aiColor
+  const attackScore = evaluatePoint(x, y, aiColor, isHard)
+
+  // 评估此处阻挡玩家的防守价值
+  board.value[x][y] = playerColor
+  const defenseScore = evaluatePoint(x, y, playerColor, isHard)
+
+  // 恢复空位
+  board.value[x][y] = 0
+
+  // 困难模式更注重防守
+  const attackWeight = isHard ? 1.0 : 1.2
+  const defenseWeight = isHard ? 1.1 : 0.9
+
+  score = attackScore * attackWeight + defenseScore * defenseWeight
+
+  // 位置加分：越靠近中心越好
+  const centerDist = Math.abs(x - 7) + Math.abs(y - 7)
+  score += (14 - centerDist) * 2
+
+  return score
+}
+
+// 评估某位置的棋形分数
+const evaluatePoint = (x: number, y: number, color: number, isHard: boolean): number => {
+  const directions = [[1, 0], [0, 1], [1, 1], [1, -1]]
+  let totalScore = 0
+
+  for (const [dx, dy] of directions) {
+    const lineInfo = getLineInfo(x, y, dx, dy, color)
+    totalScore += getLineScore(lineInfo, isHard)
+  }
+
+  return totalScore
+}
+
+// 获取某方向上的棋形信息
+const getLineInfo = (x: number, y: number, dx: number, dy: number, color: number) => {
+  let count = 1
+  let openEnds = 0
+  let blocked = 0
+
+  // 正方向
+  let i = 1
+  while (true) {
+    const nx = x + dx * i
+    const ny = y + dy * i
+    if (nx < 0 || nx >= 15 || ny < 0 || ny >= 15) {
+      blocked++
+      break
+    }
+    if (board.value[nx][ny] === color) {
+      count++
+    } else if (board.value[nx][ny] === 0) {
+      openEnds++
+      break
+    } else {
+      blocked++
+      break
+    }
+    i++
+  }
+
+  // 反方向
+  i = 1
+  while (true) {
+    const nx = x - dx * i
+    const ny = y - dy * i
+    if (nx < 0 || nx >= 15 || ny < 0 || ny >= 15) {
+      blocked++
+      break
+    }
+    if (board.value[nx][ny] === color) {
+      count++
+    } else if (board.value[nx][ny] === 0) {
+      openEnds++
+      break
+    } else {
+      blocked++
+      break
+    }
+    i++
+  }
+
+  return { count, openEnds, blocked }
+}
+
+// 根据棋形给分
+const getLineScore = (line: { count: number; openEnds: number; blocked: number }, isHard: boolean): number => {
+  const { count, openEnds, blocked } = line
+
+  // 五连 - 必胜
+  if (count >= 5) return 100000
+
+  // 活四 - 必胜
+  if (count === 4 && openEnds === 2) return 50000
+
+  // 冲四 - 很强
+  if (count === 4 && openEnds === 1) return 10000
+
+  // 活三 - 强力进攻
+  if (count === 3 && openEnds === 2) return isHard ? 5000 : 3000
+
+  // 眠三 - 有潜力
+  if (count === 3 && openEnds === 1) return isHard ? 1000 : 500
+
+  // 活二
+  if (count === 2 && openEnds === 2) return isHard ? 500 : 200
+
+  // 眠二
+  if (count === 2 && openEnds === 1) return isHard ? 100 : 50
+
+  // 单子
+  if (count === 1 && openEnds >= 1) return isHard ? 20 : 10
+
+  return 0
 }
 
 // 检查胜负（简化版）
