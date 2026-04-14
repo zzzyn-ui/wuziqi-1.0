@@ -79,6 +79,7 @@ backend/*.log
 # 旧项目目录
 gobang-frontend/
 gobang-backend/
+src/
 
 # 备份文件
 *.backup
