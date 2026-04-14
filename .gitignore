@@ -26,6 +26,9 @@ server_*.log
 *.swo
 *~
 
+# AI 助手相关
+.claude/
+
 # 操作系统
 .DS_Store
 Thumbs.db
@@ -78,3 +81,7 @@ gobang-backend/
 # 备份文件
 *.backup
 *_backup.*
+
+# 临时 SQL 文件
+init_db.sql
+*.sql.backup
