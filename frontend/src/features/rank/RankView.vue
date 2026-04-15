@@ -401,13 +401,127 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
+  .page-content-wrapper {
+    padding: 0 15px;
+  }
+
+  .rank-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .rank-avatar.rank-first {
+    font-size: 20px;
+  }
+
+  .medal-icon {
+    font-size: 22px;
+  }
+
+  .rank-number {
+    font-size: 13px;
+  }
+
   .player-stats {
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
   }
 
   .stat-item {
     flex: 0 0 auto;
+    min-width: 60px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+  }
+
+  .my-rank-footer {
+    padding: 12px 15px;
+    gap: 10px;
+  }
+
+  .my-rank-label {
+    font-size: 13px;
+  }
+
+  .my-rank-value {
+    font-size: 18px;
+  }
+
+  .tag {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-content-wrapper {
+    padding: 0 10px;
+  }
+
+  .card-title-section h3 {
+    font-size: 18px;
+  }
+
+  .rank-list {
+    gap: 12px;
+  }
+
+  .rank-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .rank-avatar.rank-first {
+    font-size: 18px;
+  }
+
+  .medal-icon {
+    font-size: 18px;
+  }
+
+  .rank-number {
+    font-size: 12px;
+  }
+
+  .player-stats {
+    gap: 8px;
+  }
+
+  .stat-item {
+    min-width: 50px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+  }
+
+  .stat-value {
+    font-size: 14px;
+  }
+
+  .my-rank-footer {
+    padding: 10px 12px;
+  }
+
+  .my-rank-label {
+    font-size: 12px;
+  }
+
+  .my-rank-value {
+    font-size: 16px;
+  }
+
+  .tag {
+    font-size: 10px;
+    padding: 1px 5px;
   }
 }
 

@@ -252,47 +252,295 @@ const handleMove = (x: number, y: number) => {
   setTimeout(() => makeAIMove(), aiThinkTime.value * 1000)
 }
 
+// === AI 辅助函数 ===
+
+// 简单AI：基础攻防逻辑
+const getEasyAIMove = (aiColor: number, playerColor: number): { x: number; y: number } => {
+  const emptyCells: { x: number; y: number }[] = []
+  for (let i = 0; i < 15; i++) {
+    for (let j = 0; j < 15; j++) {
+      if (board.value[i][j] === 0) {
+        emptyCells.push({ x: i, y: j })
+      }
+    }
+  }
+
+  if (emptyCells.length === 0) return { x: 7, y: 7 }
+
+  // 第一步：天元
+  if (moveHistory.value.length === 0 && aiColor === 1) {
+    return { x: 7, y: 7 }
+  }
+
+  // 检查是否有能获胜的位置
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = aiColor
+    if (checkWin(cell.x, cell.y, aiColor)) {
+      board.value[cell.x][cell.y] = 0
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 检查是否需要阻挡玩家获胜（只堵五连）
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    if (checkWin(cell.x, cell.y, playerColor)) {
+      board.value[cell.x][cell.y] = 0
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 随机选择有邻居的位置
+  const candidates = emptyCells.filter(cell => hasNeighbor(cell.x, cell.y))
+  if (candidates.length > 0) {
+    return candidates[Math.floor(Math.random() * candidates.length)]
+  }
+
+  return emptyCells[Math.floor(Math.random() * emptyCells.length)]
+}
+
+// 中等AI：会堵五连、活四、活三
+const getMediumAIMove = (aiColor: number, playerColor: number): { x: number; y: number } => {
+  const emptyCells: { x: number; y: number }[] = []
+  for (let i = 0; i < 15; i++) {
+    for (let j = 0; j < 15; j++) {
+      if (board.value[i][j] === 0) {
+        emptyCells.push({ x: i, y: j })
+      }
+    }
+  }
+
+  if (emptyCells.length === 0) return { x: 7, y: 7 }
+
+  // 第一步：天元
+  if (moveHistory.value.length === 0 && aiColor === 1) {
+    return { x: 7, y: 7 }
+  }
+
+  // 1. 检查是否能赢
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = aiColor
+    if (checkWin(cell.x, cell.y, aiColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🎯 中等AI：直接获胜！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 2. 检查是否需要堵玩家（五连/活四/冲四）
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    if (checkWin(cell.x, cell.y, playerColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🛡️ 中等AI：堵截玩家威胁！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 3. 检查是否需要堵活三
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    if (hasLiveThree(cell.x, cell.y, playerColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🛡️ 中等AI：堵活三！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 4. 否则选择靠近中心的位置
+  let bestMove = emptyCells[0]
+  let bestScore = -Infinity
+  for (const cell of emptyCells) {
+    const score = evaluateSimplePosition(cell.x, cell.y)
+    if (score > bestScore) {
+      bestScore = score
+      bestMove = cell
+    }
+  }
+  return bestMove
+}
+
+// 困难AI：更积极地防守
+const getHardAIMove = (aiColor: number, playerColor: number): { x: number; y: number } => {
+  const emptyCells: { x: number; y: number }[] = []
+  for (let i = 0; i < 15; i++) {
+    for (let j = 0; j < 15; j++) {
+      if (board.value[i][j] === 0) {
+        emptyCells.push({ x: i, y: j })
+      }
+    }
+  }
+
+  if (emptyCells.length === 0) return { x: 7, y: 7 }
+
+  // 第一步：天元
+  if (moveHistory.value.length === 0 && aiColor === 1) {
+    return { x: 7, y: 7 }
+  }
+
+  // 1. 检查是否能赢
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = aiColor
+    if (checkWin(cell.x, cell.y, aiColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🎯 困难AI：直接获胜！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 2. 检查是否需要堵玩家（五连/活四/冲四）
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    if (checkWin(cell.x, cell.y, playerColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🛡️ 困难AI：堵截玩家威胁！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 3. 检查是否需要堵活三或眠三
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    if (hasLiveThree(cell.x, cell.y, playerColor) || hasSleepThree(cell.x, cell.y, playerColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🛡️ 困难AI：堵三连！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 4. 选择最佳位置
+  let bestMove = emptyCells[0]
+  let bestScore = -Infinity
+  for (const cell of emptyCells) {
+    const score = evaluateSimplePosition(cell.x, cell.y)
+    if (score > bestScore) {
+      bestScore = score
+      bestMove = cell
+    }
+  }
+  return bestMove
+}
+
+// 检查位置是否有相邻棋子
+const hasNeighbor = (x: number, y: number, distance: number = 2): boolean => {
+  for (let dx = -distance; dx <= distance; dx++) {
+    for (let dy = -distance; dy <= distance; dy++) {
+      if (dx === 0 && dy === 0) continue
+      const nx = x + dx
+      const ny = y + dy
+      if (nx >= 0 && nx < 15 && ny >= 0 && ny < 15) {
+        if (board.value[nx][ny] !== 0) return true
+      }
+    }
+  }
+  return false
+}
+
+// 检查是否形成活三
+const hasLiveThree = (x: number, y: number, color: number): boolean => {
+  const directions = [[1, 0], [0, 1], [1, 1], [1, -1]]
+  for (const [dx, dy] of directions) {
+    const info = getLineInfo(x, y, dx, dy, color)
+    if (info.count === 3 && info.openEnds === 2) {
+      return true
+    }
+  }
+  return false
+}
+
+// 检查是否形成眠三
+const hasSleepThree = (x: number, y: number, color: number): boolean => {
+  const directions = [[1, 0], [0, 1], [1, 1], [1, -1]]
+  for (const [dx, dy] of directions) {
+    const info = getLineInfo(x, y, dx, dy, color)
+    if (info.count === 3 && info.openEnds === 1) {
+      return true
+    }
+  }
+  return false
+}
+
+// 获取某方向的棋形信息
+const getLineInfo = (x: number, y: number, dx: number, dy: number, color: number) => {
+  let count = 1
+  let openEnds = 0
+
+  // 正方向
+  let i = 1
+  while (true) {
+    const nx = x + dx * i
+    const ny = y + dy * i
+    if (nx < 0 || nx >= 15 || ny < 0 || ny >= 15) break
+    if (board.value[nx][ny] === color) {
+      count++
+    } else if (board.value[nx][ny] === 0) {
+      openEnds++
+      break
+    } else {
+      break
+    }
+    i++
+  }
+
+  // 反方向
+  i = 1
+  while (true) {
+    const nx = x - dx * i
+    const ny = y - dy * i
+    if (nx < 0 || nx >= 15 || ny < 0 || ny >= 15) break
+    if (board.value[nx][ny] === color) {
+      count++
+    } else if (board.value[nx][ny] === 0) {
+      openEnds++
+      break
+    } else {
+      break
+    }
+    i++
+  }
+
+  return { count, openEnds }
+}
+
+// 简单的位置评估
+const evaluateSimplePosition = (x: number, y: number): number => {
+  let score = 0
+
+  // 越靠近中心越好
+  const centerDist = Math.abs(x - 7) + Math.abs(y - 7)
+  score += (14 - centerDist) * 3
+
+  // 有相邻棋子加分
+  if (hasNeighbor(x, y, 1)) {
+    score += 10
+  }
+
+  return score
+}
+
 // AI落子
 const makeAIMove = async () => {
   try {
-    // TODO: 调用后端AI API
-    // const response = await http.post('/api/pve/move', {
-    //   board: board.value,
-    //   difficulty: selectedDifficulty.value
-    // })
-    // const { x, y } = response.data
-
-    // 获取所有空位
-    const emptyCells: { x: number; y: number }[] = []
-    for (let i = 0; i < 15; i++) {
-      for (let j = 0; j < 15; j++) {
-        if (board.value[i][j] === 0) {
-          emptyCells.push({ x: i, y: j })
-        }
-      }
-    }
-
-    if (emptyCells.length === 0) return
-
     const aiColor = playerColor.value === 'black' ? 2 : 1
+    const playerColorNum = playerColor.value === 'black' ? 1 : 2
+
+    // 根据难度选择AI策略
     let move: { x: number; y: number }
 
-    // 黑棋先手第一步：在中心区域随机选择
-    if (moveHistory.value.length === 0 && aiColor === 1) {
-      // 在中心5x5区域随机选择 (位置6-10)
-      const centerArea: { x: number; y: number }[] = []
-      for (let i = 5; i <= 9; i++) {
-        for (let j = 5; j <= 9; j++) {
-          if (board.value[i][j] === 0) {
-            centerArea.push({ x: i, y: j })
-          }
-        }
-      }
-      move = centerArea[Math.floor(Math.random() * centerArea.length)]
+    if (selectedDifficulty.value === 'easy') {
+      move = getEasyAIMove(aiColor, playerColorNum)
+    } else if (selectedDifficulty.value === 'medium') {
+      move = getMediumAIMove(aiColor, playerColorNum)
     } else {
-      // 其他情况：优先选择中间位置，否则随机
-      const centerCell = emptyCells.find(c => c.x >= 6 && c.x <= 8 && c.y >= 6 && c.y <= 8)
-      move = centerCell || emptyCells[Math.floor(Math.random() * emptyCells.length)]
+      move = getHardAIMove(aiColor, playerColorNum)
     }
 
     board.value[move.x][move.y] = aiColor

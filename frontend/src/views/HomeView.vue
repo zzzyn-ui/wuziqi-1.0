@@ -5176,7 +5176,15 @@ onUnmounted(() => {
 
   .header-right {
     width: 100%;
-    justify-content: space-between;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .user-profile-display {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
   }
 
   .user-info-card {
@@ -5234,6 +5242,53 @@ onUnmounted(() => {
     min-width: 80px;
     font-size: 12px;
     padding: 8px 12px;
+  }
+
+  /* 排行榜移动端优化 */
+  .rank-item {
+    padding: 15px;
+    flex-wrap: wrap;
+  }
+
+  .rank-number {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    margin-right: 12px;
+  }
+
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .player-name {
+    font-size: 16px;
+  }
+
+  .player-level {
+    font-size: 12px;
+  }
+
+  .player-stats {
+    gap: 10px;
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .stat-item {
+    padding: 6px 12px;
+    min-width: 70px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .stat-value {
+    font-size: 14px;
   }
 }
 
@@ -5404,14 +5459,141 @@ onUnmounted(() => {
     gap: 30px;
   }
 
+  .footer-brand {
+    justify-content: center;
+    text-align: center;
+  }
+
   .footer-links {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+  }
+
+  .footer-link-section {
+    text-align: center;
+  }
+
+  .footer-stats {
+    align-items: center;
+  }
+
+  .footer-stat-item {
+    width: 100%;
+    max-width: 280px;
+    justify-content: center;
   }
 
   .footer-bottom {
     flex-direction: column;
     gap: 15px;
     text-align: center;
+  }
+
+  .footer-social {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-container {
+    padding: 30px 15px 15px;
+  }
+
+  .footer-brand {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .footer-logo {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+  }
+
+  .footer-brand-text h3 {
+    font-size: 16px;
+  }
+
+  .footer-brand-text p {
+    font-size: 13px;
+  }
+
+  .footer-links {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .footer-link-section h4 {
+    font-size: 13px;
+  }
+
+  .footer-link-section a {
+    font-size: 14px;
+  }
+
+  .footer-stat-value {
+    font-size: 18px;
+  }
+
+  .footer-stat-label {
+    font-size: 11px;
+  }
+
+  .footer-copyright {
+    font-size: 12px;
+  }
+
+  /* 排行榜小屏幕优化 */
+  .rank-item {
+    padding: 12px;
+  }
+
+  .rank-number {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    margin-right: 10px;
+  }
+
+  .medal {
+    font-size: 18px;
+  }
+
+  .avatar-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    margin-right: 10px;
+  }
+
+  .player-name {
+    font-size: 14px;
+  }
+
+  .player-level {
+    font-size: 11px;
+  }
+
+  .player-stats {
+    gap: 8px;
+  }
+
+  .stat-item {
+    padding: 5px 10px;
+    min-width: 60px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+  }
+
+  .stat-value {
+    font-size: 13px;
+  }
+
+  .me-tag {
+    font-size: 10px;
+    padding: 1px 6px;
   }
 }
 

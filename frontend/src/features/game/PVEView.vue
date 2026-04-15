@@ -364,6 +364,55 @@ const getMediumAIMove = (aiColor: number, playerColor: number): { x: number; y: 
     return { x: 7, y: 7 }
   }
 
+  // === 进攻与防守平衡策略 ===
+
+  // 1. 检查是否有能获胜的位置
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = aiColor
+    if (checkWin(cell.x, cell.y, aiColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🎯 AI直接获胜！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 2. 主动进攻：检查AI是否能形成活四（比堵活三优先）
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = aiColor
+    if (hasLiveFour(cell.x, cell.y, aiColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('⚔️ AI主动进攻：形成活四！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 3. 检查是否需要阻挡玩家获胜（堵五连、活四、冲四）
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    if (checkWin(cell.x, cell.y, playerColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🛡️ AI防守：堵截威胁！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 4. 检查是否需要阻挡玩家的活三
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    const info = getLineInfoFromPoint(cell.x, cell.y, playerColor)
+    // 如果形成活三，必须堵
+    if (info.hasLiveThree) {
+      console.log('🛡️ 中等AI检测到活三，堵在:', cell.x, cell.y)
+      board.value[cell.x][cell.y] = 0
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 4. 其他情况用评分系统
   let bestMove = emptyCells[0]
   let bestScore = -Infinity
 
@@ -396,7 +445,54 @@ const getHardAIMove = (aiColor: number, playerColor: number): { x: number; y: nu
     return { x: 7, y: 7 }
   }
 
-  // 困难模式使用更深度的评估
+  // === 进攻与防守平衡策略 ===
+
+  // 1. 检查是否有能获胜的位置
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = aiColor
+    if (checkWin(cell.x, cell.y, aiColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🎯 困难AI直接获胜！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 2. 主动进攻：检查AI是否能形成活四
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = aiColor
+    if (hasLiveFour(cell.x, cell.y, aiColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('⚔️ 困难AI主动进攻：形成活四！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 3. 检查是否需要阻挡玩家获胜（堵五连、活四、冲四）
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    if (checkWin(cell.x, cell.y, playerColor)) {
+      board.value[cell.x][cell.y] = 0
+      console.log('🛡️ 困难AI防守：堵截威胁！', cell.x, cell.y)
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 4. 检查是否需要阻挡玩家的活三（困难模式更敏感）
+  for (const cell of emptyCells) {
+    board.value[cell.x][cell.y] = playerColor
+    const info = getLineInfoFromPoint(cell.x, cell.y, playerColor)
+    // 如果形成活三或双眠三，必须堵
+    if (info.hasLiveThree || info.hasDoubleSleepThree) {
+      board.value[cell.x][cell.y] = 0
+      return cell
+    }
+    board.value[cell.x][cell.y] = 0
+  }
+
+  // 4. 其他情况用评分系统
   let bestMove = emptyCells[0]
   let bestScore = -Infinity
 
@@ -463,9 +559,9 @@ const evaluatePosition = (x: number, y: number, aiColor: number, playerColor: nu
   // 恢复空位
   board.value[x][y] = 0
 
-  // 困难模式更注重防守
-  const attackWeight = isHard ? 1.0 : 1.2
-  const defenseWeight = isHard ? 1.1 : 0.9
+  // 攻防平衡：既防守也进攻
+  const attackWeight = isHard ? 1.5 : 1.3    // 进攻权重：主动出击
+  const defenseWeight = isHard ? 1.2 : 1.1   // 防守权重：适当防守
 
   score = attackScore * attackWeight + defenseScore * defenseWeight
 
@@ -540,11 +636,53 @@ const getLineInfo = (x: number, y: number, dx: number, dy: number, color: number
   return { count, openEnds, blocked }
 }
 
-// 根据棋形给分
+// 检查在某个位置落子后形成的棋形（用于防守判断）
+const getLineInfoFromPoint = (x: number, y: number, color: number) => {
+  const directions = [[1, 0], [0, 1], [1, 1], [1, -1]]
+  let hasLiveThree = false
+  let hasDoubleSleepThree = false
+  let sleepThreeCount = 0
+
+  for (const [dx, dy] of directions) {
+    const line = getLineInfo(x, y, dx, dy, color)
+
+    // 活三：3个子且两头都是空的
+    if (line.count === 3 && line.openEnds === 2) {
+      hasLiveThree = true
+    }
+
+    // 眠三：3个子且只有一头是空的
+    if (line.count === 3 && line.openEnds === 1) {
+      sleepThreeCount++
+    }
+  }
+
+  // 双眠三：两个方向都是眠三
+  if (sleepThreeCount >= 2) {
+    hasDoubleSleepThree = true
+  }
+
+  return { hasLiveThree, hasDoubleSleepThree }
+}
+
+// 检查是否形成活四
+const hasLiveFour = (x: number, y: number, color: number): boolean => {
+  const directions = [[1, 0], [0, 1], [1, 1], [1, -1]]
+  for (const [dx, dy] of directions) {
+    const line = getLineInfo(x, y, dx, dy, color)
+    if (line.count === 4 && line.openEnds === 2) {
+      return true
+    }
+  }
+  return false
+}
+
+// 根据棋形给分 - AI难度分级
+// 简单：新手水平，中等：下过部分玩家，困难：下过大部分玩家
 const getLineScore = (line: { count: number; openEnds: number; blocked: number }, isHard: boolean): number => {
   const { count, openEnds, blocked } = line
 
-  // 五连 - 必胜
+  // 五连 - 必胜（所有难度相同）
   if (count >= 5) return 100000
 
   // 活四 - 必胜
@@ -553,20 +691,23 @@ const getLineScore = (line: { count: number; openEnds: number; blocked: number }
   // 冲四 - 很强
   if (count === 4 && openEnds === 1) return 10000
 
-  // 活三 - 强力进攻
-  if (count === 3 && openEnds === 2) return isHard ? 5000 : 3000
+  // === 以下根据难度调整 ===
 
-  // 眠三 - 有潜力
-  if (count === 3 && openEnds === 1) return isHard ? 1000 : 500
-
-  // 活二
-  if (count === 2 && openEnds === 2) return isHard ? 500 : 200
-
-  // 眠二
-  if (count === 2 && openEnds === 1) return isHard ? 100 : 50
-
-  // 单子
-  if (count === 1 && openEnds >= 1) return isHard ? 20 : 10
+  if (isHard) {
+    // 困难模式 - 高级AI，下过大部分玩家
+    if (count === 3 && openEnds === 2) return 15000  // 活三：极高
+    if (count === 3 && openEnds === 1) return 5000   // 眠三：很高
+    if (count === 2 && openEnds === 2) return 2000   // 活二：高
+    if (count === 2 && openEnds === 1) return 500    // 眠二：高
+    if (count === 1 && openEnds >= 1) return 100     // 单子：高
+  } else {
+    // 中等模式 - 中级AI，下过部分玩家
+    if (count === 3 && openEnds === 2) return 5000   // 活三：较高
+    if (count === 3 && openEnds === 1) return 1500   // 眠三：中等偏上
+    if (count === 2 && openEnds === 2) return 400    // 活二：中等
+    if (count === 2 && openEnds === 1) return 100    // 眠二：中等
+    if (count === 1 && openEnds >= 1) return 30      // 单子：中等
+  }
 
   return 0
 }
@@ -1334,52 +1475,272 @@ const goHome = () => {
   }
 }
 
-/* 响应式 */
+/* 响应式布局 */
+/* 平板 */
+@media (max-width: 1024px) {
+  .pve-content {
+    padding: 0 15px;
+  }
+
+  .pve-game-area {
+    padding: 20px;
+  }
+
+  .pve-board {
+    width: 400px;
+    height: 400px;
+    grid-template-columns: repeat(15, calc(400px / 15));
+    grid-template-rows: repeat(15, calc(400px / 15));
+  }
+
+  .pve-board::before {
+    background-size: calc(400px / 15) calc(400px / 15);
+    background-position: calc(400px / 30) calc(400px / 30);
+  }
+}
+
+/* 手机 */
 @media (max-width: 768px) {
   .pve-nav {
-    padding: 15px 20px;
+    padding: 12px 15px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .pve-title {
     font-size: 18px;
+    text-align: center;
   }
 
   .pve-back-btn span {
     display: none;
   }
 
-  .pve-board-container {
-    overflow-x: auto;
-    padding: 10px;
+  .pve-spacer {
+    display: none;
   }
 
-  .pve-board {
-    width: 300px;
-    height: 300px;
+  .pve-content {
+    margin: 10px auto;
+    padding: 0 10px;
   }
 
-  .pve-piece {
-    width: 16px;
-    height: 16px;
-  }
-
-  .pve-piece {
-    width: 26px;
-    height: 26px;
+  .pve-game-area {
+    padding: 15px;
+    border-radius: 12px;
   }
 
   .pve-game-header {
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    padding: 10px;
   }
 
+  .pve-player-info {
+    width: 100%;
+    justify-content: center;
+    padding: 8px;
+  }
+
+  .pve-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .pve-vs {
+    font-size: 18px;
+    margin: 5px 0;
+  }
+
+  /* 棋盘响应式 - 修复版 */
+  .pve-board-container {
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .pve-board {
+    width: min(90vw, 350px);
+    height: min(90vw, 350px);
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+  }
+
+  .pve-board::before {
+    background-size: calc(100% / 15) calc(100% / 15);
+    background-position: calc(100% / 30) calc(100% / 30);
+  }
+
+  .pve-piece {
+    width: 80%;
+    height: 80%;
+  }
+
+  .pve-star-point {
+    width: 6px;
+    height: 6px;
+  }
+
+  .pve-last-move {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* 游戏状态 */
+  .pve-game-status {
+    margin: 10px 0;
+  }
+
+  .pve-status-turn,
+  .pve-status-thinking {
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+
+  /* 控制按钮 */
   .pve-controls {
-    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 8px;
+    justify-content: center;
   }
 
   .pve-btn {
     flex: 1;
-    min-width: 80px;
+    padding: 10px 12px;
+    font-size: 13px;
+    min-width: 70px;
+  }
+
+  /* 选项面板 */
+  .pve-options-panel {
+    padding: 15px;
+    gap: 10px;
+  }
+
+  .pve-option-item-inline {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+  }
+
+  .pve-slider {
+    width: 120px;
+  }
+
+  .pve-slider-value {
+    font-size: 12px;
+  }
+
+  .pve-change-difficulty-btn {
+    width: 100%;
+    padding: 8px 12px;
+  }
+
+  /* 游戏结束弹窗 */
+  .pve-game-over-modal {
+    padding: 20px;
+  }
+
+  .pve-game-over-content {
+    padding: 30px 20px;
+    max-width: 90vw;
+  }
+
+  .pve-result-icon {
+    font-size: 48px;
+    margin: 15px 0;
+  }
+
+  .pve-result-message {
+    font-size: 18px;
+  }
+}
+
+/* 小屏手机 */
+@media (max-width: 480px) {
+  .pve-nav {
+    padding: 10px;
+  }
+
+  .pve-title {
+    font-size: 16px;
+  }
+
+  .pve-game-area {
+    padding: 10px;
+  }
+
+  .pve-board {
+    width: min(95vw, 320px);
+    height: min(95vw, 320px);
+  }
+
+  .pve-board::before {
+    background-size: calc(100% / 15) calc(100% / 15);
+    background-position: calc(100% / 30) calc(100% / 30);
+  }
+
+  .pve-avatar {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+  }
+
+  .pve-player-name {
+    font-size: 12px;
+  }
+
+  .pve-player-color {
+    font-size: 11px;
+  }
+
+  .pve-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .pve-options-panel {
+    padding: 12px;
+    gap: 8px;
+  }
+}
+
+/* 横屏适配 */
+@media (max-width: 768px) and (orientation: landscape) {
+  .pve-content {
+    margin: 5px auto;
+  }
+
+  .pve-game-area {
+    padding: 10px;
+  }
+
+  .pve-game-header {
+    flex-direction: row;
+    padding: 8px;
+  }
+
+  .pve-board {
+    width: min(70vh, 350px);
+    height: min(70vh, 350px);
+  }
+
+  .pve-board::before {
+    background-size: calc(100% / 15) calc(100% / 15);
+    background-position: calc(100% / 30) calc(100% / 30);
+  }
+
+  .pve-options-panel {
+    padding: 10px;
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .pve-option-item-inline {
+    flex-direction: row;
+    width: auto;
   }
 }
 </style>
